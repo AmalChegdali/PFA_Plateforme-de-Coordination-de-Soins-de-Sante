@@ -1,0 +1,33 @@
+name: Java CI Simple
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Récupération du code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Configuration de Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📦 Build du projet (sans tests)
+        run: |
+          echo "🚀 Démarrage du build Maven"
+          mvn clean install -DskipTests=true
+          echo "✅ Build terminé avec succès"
+
+      - name: 🧪 Exécution des tests
+        run: |
+          echo "🧪 Lancement des tests unitaires"
+          mvn test
+          echo "✔️ Tests exécutés avec succès"
