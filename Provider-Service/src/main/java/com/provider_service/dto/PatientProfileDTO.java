@@ -1,26 +1,26 @@
-package com.patient_service.dto;
+package com.provider_service.dto;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-
-import com.patient_service.enums.AccountStatus;
+import com.provider_service.enums.AccountStatus;
 
 /**
  * DTO pour exposer le profil patient côté client.
  */
 public class PatientProfileDTO {
+
     private String id;
     private String email;
-    private AccountStatus accountStatus;
+    private AccountStatus accountStatus;  // Utilisation de l'enum
 
-    // Personal info
+    // Informations personnelles
     private String firstName;
     private String lastName;
     private String phone;
     private LocalDate dateOfBirth;
     private String gender;
 
-    // Address info
+    // Informations d'adresse
     private String address;
     private String city;
     private String state;
@@ -30,7 +30,28 @@ public class PatientProfileDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    // ---------- Constructeurs ----------
     public PatientProfileDTO() {}
+
+    public PatientProfileDTO(String id, String email, AccountStatus accountStatus, String firstName, String lastName,
+                             String phone, LocalDate dateOfBirth, String gender, String address, String city,
+                             String state, String zipCode, String country, LocalDateTime createdAt, LocalDateTime updatedAt) {
+        this.id = id;
+        this.email = email;
+        this.accountStatus = accountStatus;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.phone = phone;
+        this.dateOfBirth = dateOfBirth;
+        this.gender = gender;
+        this.address = address;
+        this.city = city;
+        this.state = state;
+        this.zipCode = zipCode;
+        this.country = country;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+    }
 
     // ---------- Getters / Setters ----------
     public String getId() { return id; }
@@ -78,6 +99,7 @@ public class PatientProfileDTO {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
+    // ---------- Méthodes utilitaires ----------
     public String getFullName() {
         if (firstName != null && lastName != null) {
             return firstName + " " + lastName;

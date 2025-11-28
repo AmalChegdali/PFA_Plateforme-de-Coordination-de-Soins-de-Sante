@@ -3,7 +3,6 @@ package com.patient_service.models;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
-
 import java.util.Collections;
 
 import org.springframework.data.annotation.Id;
@@ -14,10 +13,16 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.patient_service.enums.Role;
+import com.patient_service.enums.AccountStatus;
 
-
+/**
+ * Classe principale représentant un patient.
+ * Implémente UserDetails pour Spring Security.
+ */
 @Document(collection = "patients")
-public class Patient implements UserDetails{
+public class Patient implements UserDetails {
+
     @Id
     private String id;
 
@@ -26,8 +31,7 @@ public class Patient implements UserDetails{
 
     @JsonIgnore
     private String password;
-    
-    //Role
+
     private Role role = Role.PATIENT;
 
     private boolean enabled = true;
@@ -35,82 +39,60 @@ public class Patient implements UserDetails{
     private boolean accountNonLocked = true;
     private boolean credentialsNonExpired = true;
 
-    // Status & timestamps
     private AccountStatus accountStatus;
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 
-    // Personal info
-    private String firstName;
-    private String lastName;
-    private String phone;
-    private LocalDate dateOfBirth;
-    private String gender;
+    private PersonalInfo personalInfo;
+    private Address addressInfo;
 
-    // Address
-    private String address;
-    private String city;
-    private String state;
-    private String zipCode;
-    private String country;
-
-    // Constructors
-    public Patient() {}
+    // ---------- Constructeurs ----------
+    public Patient() {
+        this.personalInfo = new PersonalInfo();
+        this.addressInfo = new Address();
+    }
 
     public Patient(String email, String password) {
+        this();
         this.email = email;
         this.password = password;
     }
 
-    // UserDetails implementation
+    // ---------- UserDetails methods ----------
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.singletonList(new SimpleGrantedAuthority(role.getAuthority()));
     }
 
     @Override
-    public String getUsername() {
-        return email;
-    }
-    
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
+    public String getUsername() { return email; }
 
     @Override
-    public boolean isAccountNonExpired() {
-        return accountNonExpired;
-    }
+    public String getPassword() { return password; }
 
     @Override
-    public boolean isAccountNonLocked() {
-        return accountNonLocked;
-    }
+    public boolean isAccountNonExpired() { return accountNonExpired; }
 
     @Override
-    public boolean isCredentialsNonExpired() {
-        return credentialsNonExpired;
-    }
+    public boolean isAccountNonLocked() { return accountNonLocked; }
 
     @Override
-    public boolean isEnabled() {
-        return enabled;
-    }
+    public boolean isCredentialsNonExpired() { return credentialsNonExpired; }
 
-    // Getters and Setters
+    @Override
+    public boolean isEnabled() { return enabled; }
+
+    // ---------- Getters / Setters ----------
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
-    @Override
-    public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public Role getRole() { return role; }
+    public void setRole(Role role) { this.role = role; }
 
     public AccountStatus getAccountStatus() { return accountStatus; }
     public void setAccountStatus(AccountStatus accountStatus) {
@@ -119,88 +101,52 @@ public class Patient implements UserDetails{
     }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
-
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-    public String getFirstName() { return firstName; }
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-        this.updatedAt = LocalDateTime.now();
-    }
+    public PersonalInfo getPersonalInfo() { return personalInfo; }
+    public Address getAddressInfo() { return addressInfo; }
 
-    public String getLastName() { return lastName; }
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-        this.updatedAt = LocalDateTime.now();
-    }
+    // ---------- PersonalInfo delegated getters/setters ----------
+    public String getFirstName() { return personalInfo.getFirstName(); }
+    public void setFirstName(String firstName) { personalInfo.setFirstName(firstName); }
 
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) {
-        this.phone = phone;
-        this.updatedAt = LocalDateTime.now();
-    }
+    public String getLastName() { return personalInfo.getLastName(); }
+    public void setLastName(String lastName) { personalInfo.setLastName(lastName); }
 
-    public LocalDate getDateOfBirth() { return dateOfBirth; }
-    public void setDateOfBirth(LocalDate dateOfBirth) {
-        this.dateOfBirth = dateOfBirth;
-        this.updatedAt = LocalDateTime.now();
-    }
+    public String getPhone() { return personalInfo.getPhone(); }
+    public void setPhone(String phone) { personalInfo.setPhone(phone); }
 
-    public String getGender() { return gender; }
-    public void setGender(String gender) {
-        this.gender = gender;
-        this.updatedAt = LocalDateTime.now();
-    }
+    public String getGender() { return personalInfo.getGender(); }
+    public void setGender(String gender) { personalInfo.setGender(gender); }
 
-    public String getAddress() { return address; }
-    public void setAddress(String address) {
-        this.address = address;
-        this.updatedAt = LocalDateTime.now();
-    }
+    // Dans Patient.java
+    private LocalDate dateOfBirth;  // au lieu de LocalDateTime
 
-    public String getCity() { return city; }
-    public void setCity(String city) {
-        this.city = city;
-        this.updatedAt = LocalDateTime.now();
-    }
+    public LocalDate getDateOfBirth() { return personalInfo.getDateOfBirth(); }
+    public void setDateOfBirth(LocalDate dateOfBirth) { personalInfo.setDateOfBirth(dateOfBirth); }
 
-    public String getState() { return state; }
-    public void setState(String state) {
-        this.state = state;
-        this.updatedAt = LocalDateTime.now();
-    }
+    // ---------- Address delegated getters/setters ----------
+    public String getAddress() { return addressInfo.getAddress(); }
+    public void setAddress(String address) { addressInfo.setAddress(address); }
 
-    public String getZipCode() { return zipCode; }
-    public void setZipCode(String zipCode) {
-        this.zipCode = zipCode;
-        this.updatedAt = LocalDateTime.now();
-    }
+    public String getCity() { return addressInfo.getCity(); }
+    public void setCity(String city) { addressInfo.setCity(city); }
 
-    public String getCountry() { return country; }
-    public void setCountry(String country) {
-        this.country = country;
-        this.updatedAt = LocalDateTime.now();
-    }
+    public String getState() { return addressInfo.getState(); }
+    public void setState(String state) { addressInfo.setState(state); }
 
+    public String getZipCode() { return addressInfo.getZipCode(); }
+    public void setZipCode(String zipCode) { addressInfo.setZipCode(zipCode); }
 
-    public void setEnabled(boolean enabled) { this.enabled = enabled; }
-    public void setAccountNonExpired(boolean accountNonExpired) { this.accountNonExpired = accountNonExpired; }
-    public void setAccountNonLocked(boolean accountNonLocked) { this.accountNonLocked = accountNonLocked; }
-    public void setCredentialsNonExpired(boolean credentialsNonExpired) { this.credentialsNonExpired = credentialsNonExpired; }
+    public String getCountry() { return addressInfo.getCountry(); }
+    public void setCountry(String country) { addressInfo.setCountry(country); }
 
-    // Helper method to get full name
+    // ---------- Helper ----------
     public String getFullName() {
-        if (firstName != null && lastName != null) {
-            return firstName + " " + lastName;
+        if(personalInfo.getFirstName() != null && personalInfo.getLastName() != null) {
+            return personalInfo.getFirstName() + " " + personalInfo.getLastName();
         }
-        return email; // Fallback to email if name not set
-    }
-
-    // Helper method to check if profile is complete
-    public boolean isProfileComplete() {
-        return firstName != null && lastName != null && phone != null &&
-               dateOfBirth != null && address != null && city != null;
+        return email;
     }
 }

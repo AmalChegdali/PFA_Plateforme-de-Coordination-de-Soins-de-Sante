@@ -1,6 +1,6 @@
 package com.patient_service.dto;
 
-import com.patient_service.models.AccountStatus;
+import com.patient_service.enums.AccountStatus;
 
 public class ProfileStatusResponse {
 	 private String patientId;

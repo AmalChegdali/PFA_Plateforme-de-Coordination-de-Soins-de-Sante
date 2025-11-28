@@ -1,5 +1,6 @@
 package com.patient_service.services;
 
+import com.patient_service.enums.AccountStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -9,7 +10,6 @@ import org.springframework.stereotype.Service;
 import com.patient_service.config.RabbitConfig;
 import com.patient_service.dto.PatientDTO;
 import com.patient_service.dto.PatientSyncRequest;
-import com.patient_service.models.AccountStatus;
 import com.patient_service.models.Patient;
 import com.patient_service.repository.PatientRepository;
 

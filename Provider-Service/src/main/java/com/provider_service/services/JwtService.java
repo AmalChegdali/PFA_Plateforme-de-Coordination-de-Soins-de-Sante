@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import com.patient_service.models.Patient;
 import com.provider_service.models.Provider;
 
 import io.jsonwebtoken.Claims;

@@ -14,33 +14,61 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-	@Autowired
+
+    @Autowired
     private JwtAuthenticationFilter jwtAuthFilter;
-    
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
+                // ✅ Désactiver CSRF (API REST)
                 .csrf(AbstractHttpConfigurer::disable)
+
+                // ✅ Gestion des autorisations
                 .authorizeHttpRequests(auth -> auth
+
+                        // ✅ AUTH PUBLIC
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+
+                        // ✅ SWAGGER PUBLIC
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+
+                        // ✅ PATIENTS LIBRES (TEST)
+                        .requestMatchers("/api/patients/**").permitAll()
+
+                        // ✅ ERREUR
                         .requestMatchers("/error").permitAll()
+
+                        // ✅ PROFIL => JWT OBLIGATOIRE ✅✅✅
+                        .requestMatchers("/api/auth/profile").authenticated()
+
+                        // ✅ TOUT LE RESTE PROTÉGÉ
                         .anyRequest().authenticated()
                 )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // ✅ SESSION JWT STATELESS
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
+
+                // ✅ FILTRE JWT
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-        
+
         return http.build();
     }
-    
+
+    // ✅ Authentication manager
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
-    
+
+    // ✅ Password encoder
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
