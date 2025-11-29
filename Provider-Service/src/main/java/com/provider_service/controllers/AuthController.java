@@ -61,7 +61,7 @@ public class AuthController {
             Provider provider = (Provider) authentication.getPrincipal();
             String token = jwtService.generateToken(provider);
 
-            return ResponseEntity.ok(new AuthResponse(token, "Login successful", provider.getEmail()));
+            return ResponseEntity.ok(new AuthResponse(token, "Login successful", provider.getEmail(),provider.getRole().name()));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(new AuthResponse(null, "Invalid credentials", null));
