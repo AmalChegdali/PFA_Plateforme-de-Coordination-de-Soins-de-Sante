@@ -24,26 +24,26 @@ public class PatientSyncService {
     private final PatientRepository patientRepository;
     private final RabbitTemplate rabbitTemplate;
 
+    // ⚡ Communiquer avec RabbitMQ
     @RabbitListener(queues = RabbitConfig.PATIENT_SYNC_QUEUE)
     public void handleSyncRequest(PatientSyncRequest request) {
-        log.info("Received sync request from provider: {} for status: {}", 
+        log.info("Received sync request from provider: {} for status: {}",
                 request.getProviderId(), request.getStatus());
-        
+
         try {
             List<Patient> patients = getPatientsByStatus(request.getStatus());
             List<PatientDTO> patientDTOs = patients.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
-            
-            // Send to proper exchange and routing key
+
             rabbitTemplate.convertAndSend(
                     RabbitConfig.PATIENT_EXCHANGE,
                     RabbitConfig.PATIENT_SYNC_RESPONSE_ROUTING_KEY,
                     patientDTOs
             );
-            
+
             log.info("Sent {} patients to response queue", patientDTOs.size());
-            
+
         } catch (Exception e) {
             log.error("Error processing sync request: {}", e.getMessage(), e);
         }
@@ -53,7 +53,7 @@ public class PatientSyncService {
         if ("ALL".equalsIgnoreCase(status)) {
             return patientRepository.findAll();
         }
-        
+
         try {
             AccountStatus accountStatus = AccountStatus.valueOf(status.toUpperCase());
             return patientRepository.findByAccountStatus(accountStatus);
@@ -77,7 +77,8 @@ public class PatientSyncService {
         dto.setState(patient.getState());
         dto.setZipCode(patient.getZipCode());
         dto.setCountry(patient.getCountry());
-        dto.setAccountStatus(patient.getAccountStatus().name());
+        // ⚡ Convertir AccountStatus en String
+        dto.setAccountStatus(patient.getAccountStatus() != null ? patient.getAccountStatus() : null);
         dto.setCreatedAt(patient.getCreatedAt());
         dto.setUpdatedAt(patient.getUpdatedAt());
         return dto;

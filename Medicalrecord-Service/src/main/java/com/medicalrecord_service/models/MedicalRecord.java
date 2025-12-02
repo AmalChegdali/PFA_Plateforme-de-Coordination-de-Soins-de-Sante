@@ -1,9 +1,14 @@
 package com.medicalrecord_service.models;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.LocalDateTime;
 import java.util.Map;
 
+@Document(collection = "medical_records")
 public class MedicalRecord {
+    @Id
     private String recordId;
     private String patientId;
     private String providerId;
@@ -11,6 +16,11 @@ public class MedicalRecord {
     private LocalDateTime visitDate;
     private String diagnosis;
     private Map<String, Object> content;
+    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime updatedAt = LocalDateTime.now();
+
+    // Constructeurs
+    public MedicalRecord() {}
 
     // Getters et Setters
     public String getRecordId() { return recordId; }
@@ -33,4 +43,10 @@ public class MedicalRecord {
 
     public Map<String, Object> getContent() { return content; }
     public void setContent(Map<String, Object> content) { this.content = content; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

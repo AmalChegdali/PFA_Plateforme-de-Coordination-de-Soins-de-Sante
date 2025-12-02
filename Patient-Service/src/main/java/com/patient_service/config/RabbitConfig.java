@@ -8,11 +8,14 @@ import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configuration RabbitMQ pour le Patient
+ */
 @Configuration
 public class RabbitConfig {
 
-    // Exchange and Queue Names
-    public static final String PATIENT_EXCHANGE = "patient.exchange";
+    // ⚡ Communication avec Provider
+    public static final String PATIENT_EXCHANGE = "patient-exchange";
     public static final String PATIENT_STATUS_QUEUE = "patient.status.queue";
     public static final String PATIENT_STATUS_ROUTING_KEY = "patient.status.update";
     public static final String PATIENT_SYNC_QUEUE = "patient.sync.queue";
@@ -41,13 +44,13 @@ public class RabbitConfig {
         return factory;
     }
 
-    // Exchange
+    // ⚡ Exchange principal
     @Bean
     public TopicExchange patientExchange() {
         return new TopicExchange(PATIENT_EXCHANGE, true, false);
     }
 
-    // Queues
+    // ⚡ Queues
     @Bean
     public Queue patientStatusQueue() {
         return QueueBuilder.durable(PATIENT_STATUS_QUEUE).build();
@@ -57,13 +60,13 @@ public class RabbitConfig {
     public Queue patientSyncQueue() {
         return QueueBuilder.durable(PATIENT_SYNC_QUEUE).build();
     }
-    
+
     @Bean
     public Queue patientSyncResponseQueue() {
         return QueueBuilder.durable(PATIENT_SYNC_RESPONSE_QUEUE).build();
     }
 
-    // Bindings
+    // ⚡ Bindings
     @Bean
     public Binding patientStatusBinding() {
         return BindingBuilder
@@ -79,7 +82,7 @@ public class RabbitConfig {
                 .to(patientExchange())
                 .with(PATIENT_SYNC_ROUTING_KEY);
     }
-    
+
     @Bean
     public Binding patientSyncResponseBinding() {
         return BindingBuilder
@@ -87,4 +90,6 @@ public class RabbitConfig {
                 .to(patientExchange())
                 .with(PATIENT_SYNC_RESPONSE_ROUTING_KEY);
     }
+
+    // ⚡ Laisser ici les autres queues/exchanges existants pour d’autres fonctionnalités
 }

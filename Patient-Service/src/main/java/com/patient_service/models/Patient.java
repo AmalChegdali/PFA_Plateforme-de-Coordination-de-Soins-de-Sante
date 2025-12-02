@@ -39,7 +39,7 @@ public class Patient implements UserDetails {
     private boolean accountNonLocked = true;
     private boolean credentialsNonExpired = true;
 
-    private AccountStatus accountStatus;
+    private AccountStatus accountStatus = AccountStatus.PENDING;
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -97,7 +97,7 @@ public class Patient implements UserDetails {
     public AccountStatus getAccountStatus() { return accountStatus; }
     public void setAccountStatus(AccountStatus accountStatus) {
         this.accountStatus = accountStatus;
-        this.updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now(); // Mise à jour automatique
     }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
@@ -119,9 +119,6 @@ public class Patient implements UserDetails {
 
     public String getGender() { return personalInfo.getGender(); }
     public void setGender(String gender) { personalInfo.setGender(gender); }
-
-    // Dans Patient.java
-    private LocalDate dateOfBirth;  // au lieu de LocalDateTime
 
     public LocalDate getDateOfBirth() { return personalInfo.getDateOfBirth(); }
     public void setDateOfBirth(LocalDate dateOfBirth) { personalInfo.setDateOfBirth(dateOfBirth); }
@@ -149,4 +146,55 @@ public class Patient implements UserDetails {
         }
         return email;
     }
+
+    // ---------- Classes imbriquées ----------
+    public static class PersonalInfo {
+        private String firstName;
+        private String lastName;
+        private String phone;
+        private String gender;
+        private LocalDate dateOfBirth;
+
+        public String getFirstName() { return firstName; }
+        public void setFirstName(String firstName) { this.firstName = firstName; }
+
+        public String getLastName() { return lastName; }
+        public void setLastName(String lastName) { this.lastName = lastName; }
+
+        public String getPhone() { return phone; }
+        public void setPhone(String phone) { this.phone = phone; }
+
+        public String getGender() { return gender; }
+        public void setGender(String gender) { this.gender = gender; }
+
+        public LocalDate getDateOfBirth() { return dateOfBirth; }
+        public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
+    }
+
+    public static class Address {
+        private String address;
+        private String city;
+        private String state;
+        private String zipCode;
+        private String country;
+
+        public String getAddress() { return address; }
+        public void setAddress(String address) { this.address = address; }
+
+        public String getCity() { return city; }
+        public void setCity(String city) { this.city = city; }
+
+        public String getState() { return state; }
+        public void setState(String state) { this.state = state; }
+
+        public String getZipCode() { return zipCode; }
+        public void setZipCode(String zipCode) { this.zipCode = zipCode; }
+
+        public String getCountry() { return country; }
+        public void setCountry(String country) { this.country = country; }
+    }
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
 }

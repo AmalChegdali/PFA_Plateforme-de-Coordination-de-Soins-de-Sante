@@ -1,4 +1,4 @@
-package com.medicalrecord.config;
+package com.medicalrecord_service.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

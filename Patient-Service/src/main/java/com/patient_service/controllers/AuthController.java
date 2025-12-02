@@ -10,10 +10,12 @@ import org.springframework.web.bind.annotation.*;
 import com.patient_service.dto.AuthRequest;
 import com.patient_service.dto.AuthResponse;
 import com.patient_service.dto.RegisterRequest;
+import com.patient_service.dto.PatientDTO;
 import com.patient_service.enums.AccountStatus;
 import com.patient_service.models.Patient;
 import com.patient_service.services.JwtService;
 import com.patient_service.services.PatientService;
+import com.patient_service.services.PatientPublisherService;
 
 import jakarta.validation.Valid;
 
@@ -35,17 +37,35 @@ public class AuthController {
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    @Autowired
+    private PatientPublisherService patientPublisherService;
+
     // ✅ REGISTER
     @PostMapping("/register")
     @Operation(summary = "Register a new patient")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         try {
+            // Crée et sauvegarde le patient (entité)
             Patient patient = patientService.registerPatient(
                     request.getEmail(),
                     request.getPassword(),
                     request
             );
 
+            // 🔹 Construire le PatientDTO (6 paramètres attendus par le DTO)
+            PatientDTO dto = new PatientDTO(
+                    patient.getId(),
+                    patient.getFirstName(),
+                    patient.getLastName(),
+                    patient.getEmail(),
+                    patient.getPhone(),
+                    patient.getAccountStatus()
+            );
+
+            // 🔹 Publier le patient à RabbitMQ pour que le Provider le reçoive
+            patientPublisherService.publishPatient(dto);
+
+            // Générer token JWT
             String token = jwtService.generateToken(patient);
 
             AuthResponse response = new AuthResponse(
