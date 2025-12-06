@@ -31,20 +31,30 @@ public class RabbitConfig {
     /** Nom de l'exchange principal pour la communication avec Patient-Service */
     public static final String PATIENT_EXCHANGE = "patient-exchange";
     
+    /** Nom de l'exchange pour la communication avec Medicalrecord-Service */
+    public static final String MEDICAL_RECORD_EXCHANGE = "medical-record-exchange";
+    
+    /** Routing key pour la création de dossiers médicaux */
+    public static final String MEDICAL_RECORD_CREATE_ROUTING_KEY = "medical.record.create";
+    
     /** Queue pour recevoir les nouveaux patients depuis Patient-Service */
     public static final String PATIENT_SYNC_QUEUE = "patient.sync.queue";
     
-    /** Routing key pour la synchronisation des patients */
+    /** Routing key pour la synchronisation des patients (nouveaux patients) */
     public static final String PATIENT_SYNC_ROUTING_KEY = "patient.sync.request";
     
-    /** Queue pour les demandes de patients (réservée pour futures fonctionnalités) */
-    public static final String PATIENT_REQUESTS_QUEUE = "patient.requests.queue";
+    /** Routing key pour les requêtes de synchronisation depuis les providers */
+    public static final String PATIENT_SYNC_REQUEST_ROUTING_KEY = "patient.sync.request.provider";
+    
+    /** Queue pour recevoir la réponse de synchronisation des patients */
+    public static final String PATIENT_SYNC_RESPONSE_QUEUE = "patient.sync.response.queue";
+    
+    /** Routing key pour la réponse de synchronisation des patients */
+    public static final String PATIENT_SYNC_RESPONSE_ROUTING_KEY = "patient.sync.response";
     
     /** Routing key pour les mises à jour de statut des patients */
     public static final String PATIENT_STATUS_ROUTING_KEY = "patient.status.update";
     
-    /** Routing key pattern pour les demandes de patients */
-    private static final String PATIENT_REQUESTS_ROUTING_PATTERN = "patient.requests.*";
 
     // ==================== MESSAGE CONVERTER ====================
     
@@ -106,6 +116,16 @@ public class RabbitConfig {
         return new TopicExchange(PATIENT_EXCHANGE, true, false);
     }
 
+    /**
+     * Crée l'exchange Topic pour la communication avec Medicalrecord-Service.
+     * 
+     * @return TopicExchange durable et non-auto-delete
+     */
+    @Bean
+    public TopicExchange medicalRecordExchange() {
+        return new TopicExchange(MEDICAL_RECORD_EXCHANGE, true, false);
+    }
+
     // ==================== QUEUES ====================
     
     /**
@@ -120,14 +140,14 @@ public class RabbitConfig {
     }
 
     /**
-     * Crée la queue durable pour les demandes de patients.
-     * Réservée pour de futures fonctionnalités (ex: demandes de rendez-vous).
+     * Crée la queue durable pour recevoir les réponses de synchronisation des patients.
+     * Cette queue reçoit les listes de patients existants depuis Patient-Service.
      * 
-     * @return Queue durable nommée PATIENT_REQUESTS_QUEUE
+     * @return Queue durable nommée PATIENT_SYNC_RESPONSE_QUEUE
      */
     @Bean
-    public Queue patientRequestsQueue() {
-        return QueueBuilder.durable(PATIENT_REQUESTS_QUEUE).build();
+    public Queue patientSyncResponseQueue() {
+        return QueueBuilder.durable(PATIENT_SYNC_RESPONSE_QUEUE).build();
     }
 
     // ==================== BINDINGS ====================
@@ -146,17 +166,18 @@ public class RabbitConfig {
                 .with(PATIENT_SYNC_ROUTING_KEY);
     }
 
+
     /**
-     * Lie la queue des demandes à l'exchange avec un pattern de routing key.
-     * Les messages avec un routing key commençant par "patient.requests." seront routés vers cette queue.
+     * Lie la queue de réponse de synchronisation à l'exchange.
+     * Les messages avec le routing key "patient.sync.response" seront routés vers cette queue.
      * 
-     * @return Binding entre patientRequestsQueue et patientExchange
+     * @return Binding entre patientSyncResponseQueue et patientExchange
      */
     @Bean
-    public Binding patientRequestsBinding() {
+    public Binding patientSyncResponseBinding() {
         return BindingBuilder
-                .bind(patientRequestsQueue())
+                .bind(patientSyncResponseQueue())
                 .to(patientExchange())
-                .with(PATIENT_REQUESTS_ROUTING_PATTERN);
+                .with(PATIENT_SYNC_RESPONSE_ROUTING_KEY);
     }
 }

@@ -1,0 +1,12 @@
+C:\Users\chega\Desktop\Formation_S9\PFA 2026\Platefome_Sois_Sante\Request-Service\src\main\java\com\request_service\repository\PatientRequestRepository.java
+C:\Users\chega\Desktop\Formation_S9\PFA 2026\Platefome_Sois_Sante\Request-Service\src\main\java\com\request_service\config\JwtConfig.java
+C:\Users\chega\Desktop\Formation_S9\PFA 2026\Platefome_Sois_Sante\Request-Service\src\main\java\com\request_service\dto\RequestResponseDTO.java
+C:\Users\chega\Desktop\Formation_S9\PFA 2026\Platefome_Sois_Sante\Request-Service\src\main\java\com\request_service\services\PatientRequestService.java
+C:\Users\chega\Desktop\Formation_S9\PFA 2026\Platefome_Sois_Sante\Request-Service\src\main\java\com\request_service\dto\PatientRequestMessageDTO.java
+C:\Users\chega\Desktop\Formation_S9\PFA 2026\Platefome_Sois_Sante\Request-Service\src\main\java\com\request_service\config\SecurityConfig.java
+C:\Users\chega\Desktop\Formation_S9\PFA 2026\Platefome_Sois_Sante\Request-Service\src\main\java\com\request_service\models\PatientRequest.java
+C:\Users\chega\Desktop\Formation_S9\PFA 2026\Platefome_Sois_Sante\Request-Service\src\main\java\com\request_service\config\OpenApiConfig.java
+C:\Users\chega\Desktop\Formation_S9\PFA 2026\Platefome_Sois_Sante\Request-Service\src\main\java\com\request_service\config\RabbitConfig.java
+C:\Users\chega\Desktop\Formation_S9\PFA 2026\Platefome_Sois_Sante\Request-Service\src\main\java\com\request_service\listeners\RequestListener.java
+C:\Users\chega\Desktop\Formation_S9\PFA 2026\Platefome_Sois_Sante\Request-Service\src\main\java\com\request_service\RequestServiceApplication.java
+C:\Users\chega\Desktop\Formation_S9\PFA 2026\Platefome_Sois_Sante\Request-Service\src\main\java\com\request_service\controllers\RequestController.java

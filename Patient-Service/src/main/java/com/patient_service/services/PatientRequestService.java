@@ -44,11 +44,15 @@ public class PatientRequestService {
         message.put("subject", dto.getSubject());
         message.put("description", dto.getDescription());
         message.put("preferredDate", dto.getPreferredDate());
+        // Ajouter le provider cible si spécifié
+        if (dto.getTargetProviderId() != null && !dto.getTargetProviderId().isEmpty()) {
+            message.put("targetProviderId", dto.getTargetProviderId());
+        }
 
         // ✅ Publication dans la queue RabbitMQ
         rabbitTemplate.convertAndSend(
-                "patient.requests.exchange",
-                "patient.requests.key",
+                com.patient_service.config.RabbitConfig.PATIENT_REQUESTS_EXCHANGE,
+                com.patient_service.config.RabbitConfig.PATIENT_REQUESTS_ROUTING_KEY,
                 message
         );
 
@@ -59,13 +63,8 @@ public class PatientRequestService {
         );
     }
 
-    // ✅ 2. Historique (Mock temporaire)
-    public List<PatientRequestResponseDTO> getPatientRequests(Authentication authentication) {
-        return List.of(
-                new PatientRequestResponseDTO("req-1", "TRAITÉ", "Demande validée"),
-                new PatientRequestResponseDTO("req-2", "EN_ATTENTE", "En cours de traitement")
-        );
-    }
+    // Note: La récupération des demandes se fait maintenant uniquement dans Request-Service
+    // Utiliser GET /api/requests/patient/{patientId} dans Request-Service
 
     // ✅ 3. Ajout message
     public void addMessage(

@@ -9,6 +9,7 @@ public class PatientRequestDTO {
     private String subject;
     private String description;
     private LocalDate preferredDate;
+    private String targetProviderId; // ID du provider cible (optionnel)
 
     // Constructeurs
     public PatientRequestDTO() {}
@@ -19,6 +20,15 @@ public class PatientRequestDTO {
         this.subject = subject;
         this.description = description;
         this.preferredDate = preferredDate;
+    }
+
+    public PatientRequestDTO(String type, String priority, String subject, String description, LocalDate preferredDate, String targetProviderId) {
+        this.type = type;
+        this.priority = priority;
+        this.subject = subject;
+        this.description = description;
+        this.preferredDate = preferredDate;
+        this.targetProviderId = targetProviderId;
     }
 
     // Getters et Setters
@@ -36,4 +46,7 @@ public class PatientRequestDTO {
 
     public LocalDate getPreferredDate() { return preferredDate; }
     public void setPreferredDate(LocalDate preferredDate) { this.preferredDate = preferredDate; }
+
+    public String getTargetProviderId() { return targetProviderId; }
+    public void setTargetProviderId(String targetProviderId) { this.targetProviderId = targetProviderId; }
 }

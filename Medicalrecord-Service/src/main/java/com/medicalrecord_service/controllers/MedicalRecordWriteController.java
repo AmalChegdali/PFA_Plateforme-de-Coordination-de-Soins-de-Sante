@@ -5,7 +5,6 @@ import com.medicalrecord_service.services.MedicalRecordService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -14,15 +13,17 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Contrôleur REST pour les opérations d'écriture sur les dossiers médicaux.
+ * Contrôleur REST pour les opérations sur les dossiers médicaux.
  * 
  * Ce contrôleur gère :
- * - La création de nouveaux dossiers médicaux (réservé aux providers)
+ * - La lecture de tous les dossiers ou d'un dossier spécifique (GET)
  * - La mise à jour de dossiers existants (réservé aux providers)
  * - La suppression de dossiers (réservé aux providers)
- * - La lecture de tous les dossiers ou d'un dossier spécifique
  * 
- * Toutes les opérations d'écriture nécessitent le rôle PROVIDER.
+ * NOTE: La création de dossiers médicaux se fait uniquement via RabbitMQ.
+ * Les providers doivent utiliser POST /api/providers/medical-records dans Provider-Service.
+ * 
+ * Les opérations d'écriture (PUT, DELETE) nécessitent le rôle PROVIDER.
  * 
  * @author MedicalRecord-Service Team
  * @version 1.0
@@ -30,7 +31,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/records")
 @RequiredArgsConstructor
-@Tag(name = "Medical Records - Write Operations", description = "API pour créer, modifier et supprimer des dossiers médicaux")
+@Tag(name = "Medical Records", description = "API pour lire, modifier et supprimer des dossiers médicaux. La création se fait via RabbitMQ depuis Provider-Service.")
 public class MedicalRecordWriteController {
 
     // ==================== CHAMPS ====================
@@ -41,19 +42,11 @@ public class MedicalRecordWriteController {
     // ==================== ENDPOINTS CRUD ====================
     
     /**
-     * Crée un nouveau dossier médical.
-     * 
-     * @param record Le dossier médical à créer (dans le body de la requête)
-     * @return Le dossier médical créé avec son ID généré
+     * NOTE: La création de dossiers médicaux se fait maintenant uniquement via RabbitMQ.
+     * Les providers doivent utiliser l'endpoint POST /api/providers/medical-records dans Provider-Service.
+     * Cet endpoint a été supprimé pour éviter la duplication et garantir que toutes les créations
+     * passent par RabbitMQ depuis le Provider-Service.
      */
-    @PostMapping
-    @PreAuthorize("hasRole('PROVIDER')")
-    @Operation(summary = "Créer un nouveau dossier médical", 
-               description = "Crée un nouveau dossier médical. Nécessite le rôle PROVIDER.")
-    public ResponseEntity<MedicalRecord> createRecord(@RequestBody MedicalRecord record) {
-        MedicalRecord created = service.createRecord(record);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
 
     /**
      * Met à jour un dossier médical existant.

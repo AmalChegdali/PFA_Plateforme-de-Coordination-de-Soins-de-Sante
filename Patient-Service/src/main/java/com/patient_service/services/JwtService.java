@@ -46,6 +46,7 @@ public class JwtService {
 
         if (userDetails instanceof Patient patient) {
             claims.put("role", patient.getRole().name()); // PATIENT
+            claims.put("patientId", patient.getId()); // ✅ Ajouter patientId dans le JWT
         }
 
         return buildToken(claims, userDetails);

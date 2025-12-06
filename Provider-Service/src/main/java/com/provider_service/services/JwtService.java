@@ -53,6 +53,7 @@ public class JwtService {
         if (userDetails instanceof Provider) {
             Provider provider = (Provider) userDetails;
             extraClaims.put("role", provider.getRole().name()); // ✅ PROVIDER
+            extraClaims.put("providerId", provider.getId()); // ✅ Ajouter providerId dans le JWT
         }
 
         return buildToken(extraClaims, userDetails, jwtExpiration);

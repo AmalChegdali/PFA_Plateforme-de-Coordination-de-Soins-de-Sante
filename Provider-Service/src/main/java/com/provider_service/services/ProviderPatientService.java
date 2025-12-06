@@ -3,6 +3,7 @@ package com.provider_service.services;
 import com.provider_service.config.RabbitConfig;
 import com.provider_service.dto.PatientDTO;
 import com.provider_service.dto.PatientStatusUpdateMessageDTO;
+import com.provider_service.dto.PatientSyncRequest;
 import com.provider_service.enums.AccountStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +46,12 @@ public class ProviderPatientService {
     
     /** RabbitTemplate pour publier les mises à jour de statut */
     private final RabbitTemplate rabbitTemplate;
+    
+    /** Flag pour éviter les synchronisations multiples simultanées */
+    private volatile boolean syncInProgress = false;
+    
+    /** Timestamp de la dernière synchronisation */
+    private volatile long lastSyncTime = 0;
 
     // ==================== MÉTHODES PUBLIQUES ====================
     
@@ -60,12 +67,29 @@ public class ProviderPatientService {
 
     /**
      * Récupère la liste des patients filtrés par statut.
+     * Si la liste est vide et qu'on demande tous les patients, déclenche automatiquement une synchronisation.
      * 
      * @param providerId L'ID du provider (non utilisé actuellement, réservé pour futures fonctionnalités)
      * @param status Le statut à filtrer ("ALL" pour tous les patients, ou un AccountStatus)
      * @return Liste des patients correspondant au filtre
      */
     public List<PatientDTO> getPatients(String providerId, String status) {
+        // Si la liste est vide et qu'on demande tous les patients, déclencher la synchronisation
+        // Éviter les synchronisations multiples simultanées (attendre au moins 5 secondes entre deux)
+        long currentTime = System.currentTimeMillis();
+        if (patients.isEmpty() && STATUS_ALL.equalsIgnoreCase(status) && 
+            !syncInProgress && (currentTime - lastSyncTime > 5000)) {
+            log.info("Liste de patients vide, déclenchement automatique de la synchronisation...");
+            syncInProgress = true;
+            lastSyncTime = currentTime;
+            try {
+                requestSyncAllPatients(providerId);
+            } catch (Exception e) {
+                log.error("Erreur lors de la synchronisation automatique : {}", e.getMessage());
+                syncInProgress = false;
+            }
+        }
+        
         // Si "ALL" est demandé, retourner tous les patients
         if (STATUS_ALL.equalsIgnoreCase(status)) {
             return new ArrayList<>(patients);
@@ -203,6 +227,69 @@ public class ProviderPatientService {
         
         log.info("✅ Patient traité depuis RabbitMQ : {} ({})", 
                 patient.getEmail(), patient.getFullName());
+    }
+
+    /**
+     * Écoute la réponse de synchronisation des patients depuis Patient-Service.
+     * Reçoit la liste complète des patients existants et les ajoute à la liste locale.
+     * 
+     * @param patientList La liste des patients reçus depuis Patient-Service
+     */
+    @RabbitListener(queues = RabbitConfig.PATIENT_SYNC_RESPONSE_QUEUE)
+    public void receiveSyncResponse(List<PatientDTO> patientList) {
+        log.info("Réception de la réponse de synchronisation : {} patients", patientList.size());
+        
+        int addedCount = 0;
+        int updatedCount = 0;
+        
+        for (PatientDTO patient : patientList) {
+            // Construire fullName à partir de firstName et lastName si nécessaire
+            buildFullNameIfMissing(patient);
+            
+            PatientDTO existing = findPatientById(patient.getId());
+            if (existing != null) {
+                // Mise à jour des champs existants
+                updatePatientFields(existing, patient);
+                updatedCount++;
+            } else {
+                // Ajout d'un nouveau patient
+                patients.add(patient);
+                addedCount++;
+            }
+        }
+        
+        log.info("✅ Synchronisation terminée : {} patients ajoutés, {} patients mis à jour", 
+                addedCount, updatedCount);
+        
+        // Réinitialiser le flag de synchronisation
+        syncInProgress = false;
+    }
+
+    /**
+     * Demande la synchronisation de tous les patients existants depuis Patient-Service.
+     * Envoie une requête via RabbitMQ pour récupérer tous les patients.
+     * 
+     * @param providerId L'ID du provider qui demande la synchronisation
+     */
+    public void requestSyncAllPatients(String providerId) {
+        try {
+            PatientSyncRequest syncRequest = new PatientSyncRequest(
+                    java.util.UUID.randomUUID().toString(),
+                    providerId,
+                    "ALL"
+            );
+            
+            rabbitTemplate.convertAndSend(
+                    RabbitConfig.PATIENT_EXCHANGE,
+                    RabbitConfig.PATIENT_SYNC_REQUEST_ROUTING_KEY,
+                    syncRequest
+            );
+            
+            log.info("✅ Demande de synchronisation envoyée par le provider {} pour tous les patients", providerId);
+        } catch (Exception e) {
+            log.error("❌ Erreur lors de l'envoi de la demande de synchronisation : {}", e.getMessage(), e);
+            throw new RuntimeException("Erreur lors de la synchronisation des patients", e);
+        }
     }
 
     // ==================== MÉTHODES PRIVÉES ====================

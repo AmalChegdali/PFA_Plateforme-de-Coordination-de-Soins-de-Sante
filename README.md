@@ -11,6 +11,7 @@
 7. [Communication RabbitMQ](#communication-rabbitmq)
 8. [Configuration](#configuration)
 9. [Sécurité](#sécurité)
+10. [Tests](#tests)
 
 ---
 
@@ -49,21 +50,21 @@ Le projet suit une architecture microservices avec les composants suivants :
 │              Spring Cloud Gateway                            │
 └──────────────────────┬──────────────────────────────────────┘
                        │
-        ┌──────────────┼──────────────┐
-        │              │              │
-        ▼              ▼              ▼
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│   Patient    │ │   Provider   │ │   Medical    │
-│   Service    │ │   Service    │ │   Record     │
-│   (8081)     │ │   (8082)     │ │   Service    │
-│              │ │              │ │   (8083)     │
-└──────┬───────┘ └──────┬───────┘ └──────┬───────┘
-       │                │                │
-       └────────────────┼────────────────┘
-                        │
-            ┌───────────┴───────────┐
-            │                       │
-            ▼                       ▼
+        ┌──────────────┼──────────────┬──────────────┐
+        │              │              │              │
+        ▼              ▼              ▼              ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│   Patient    │ │   Provider   │ │   Medical    │ │   Request    │
+│   Service    │ │   Service    │ │   Record     │ │   Service    │
+│   (8081)     │ │   (8082)     │ │   Service    │ │   (8084)     │
+│              │ │              │ │   (8083)     │ │              │
+└──────┬───────┘ └──────┬───────┘ └──────┬───────┘ └──────┬───────┘
+       │                │                │                │
+       └────────────────┼────────────────┼────────────────┘
+                        │                │
+            ┌───────────┴───────────┐    │
+            │                       │    │
+            ▼                       ▼    ▼
     ┌──────────────┐       ┌──────────────┐
     │   MongoDB     │       │   RabbitMQ    │
     │  (27017)      │       │   (5672)      │
@@ -72,8 +73,8 @@ Le projet suit une architecture microservices avec les composants suivants :
             │                       │
             ▼                       ▼
     ┌──────────────┐       ┌──────────────┐
-    │  PostgreSQL   │       │ Eureka Server │
-    │   (5432)      │       │   (8761)      │
+    │ Eureka Server │       │ Config Server│
+    │   (8761)      │       │  (optionnel) │
     └──────────────┘       └──────────────┘
 ```
 
@@ -81,12 +82,13 @@ Le projet suit une architecture microservices avec les composants suivants :
 
 1. **API Gateway** : Point d'entrée unique pour toutes les requêtes
 2. **Eureka Server** : Service discovery pour la localisation des microservices
-3. **Patient-Service** : Gestion des patients
+3. **Patient-Service** : Gestion des patients et authentification
 4. **Provider-Service** : Gestion des prestataires de santé
 5. **MedicalRecord-Service** : Gestion des dossiers médicaux
-6. **RabbitMQ** : Message broker pour la communication asynchrone
-7. **MongoDB** : Base de données NoSQL pour Patient-Service et Provider-Service
-8. **PostgreSQL** : Base de données relationnelle pour MedicalRecord-Service
+6. **Request-Service** : Gestion des demandes de patients et réponses des providers
+7. **RabbitMQ** : Message broker pour la communication asynchrone
+8. **MongoDB** : Base de données NoSQL pour tous les services
+9. **Config-Server** : Service de configuration centralisée (optionnel)
 
 ---
 
@@ -123,13 +125,14 @@ Le projet suit une architecture microservices avec les composants suivants :
 
 | Service | Routes | URI cible |
 |---------|--------|-----------|
-| Patient-Service | `/api/patient/**`, `/api/auth/**`, `/api/requests/**` | http://localhost:8081 |
+| Patient-Service | `/api/patient/**`, `/api/auth/**`, `/api/requests/**`, `/api/notifications/**` | http://localhost:8081 |
 | Provider-Service | `/api/providers/**`, `/api/provider/**` | http://localhost:8082 |
 | MedicalRecord-Service | `/api/records/**` | http://localhost:8083 |
+| Request-Service | *(Accès direct, non routé via Gateway)* | http://localhost:8084 |
 
 #### Accès
 - **Base URL :** http://localhost:8080
-- Toutes les requêtes passent par la Gateway
+- Toutes les requêtes passent par la Gateway (sauf Request-Service)
 
 ---
 
@@ -153,35 +156,30 @@ Le projet suit une architecture microservices avec les composants suivants :
 - JWT (JJWT 0.11.5)
 - Swagger/OpenAPI
 
-#### Endpoints
+#### Endpoints principaux
 
 ##### Authentification (`/api/auth`)
-
-| Méthode | Endpoint | Description | Authentification |
-|---------|----------|-------------|-------------------|
-| POST | `/api/auth/register` | Inscription d'un nouveau patient | Public |
-| POST | `/api/auth/login` | Connexion patient | Public |
+- `POST /api/auth/register` : Inscription d'un nouveau patient
+- `POST /api/auth/login` : Connexion patient
 
 ##### Profil Patient (`/api/patient`)
-
-| Méthode | Endpoint | Description | Authentification |
-|---------|----------|-------------|-------------------|
-| GET | `/api/patient/profile` | Récupérer le profil du patient | Patient |
-| GET | `/api/patient/profile-status` | Statut du profil | Patient |
-| PUT | `/api/patient/complete-profile` | Compléter le profil | Patient |
+- `GET /api/patient/profile-status` : Statut du profil
+- `GET /api/patient/profile` : Profil complet du patient
+- `PUT /api/patient/complete-profile` : Compléter/Mettre à jour le profil
+- `GET /api/patient/medical-history` : Historique médical (compte ACTIVE requis)
 
 ##### Demandes (`/api/requests`)
+- `POST /api/requests` : Soumettre une demande (compte ACTIVE requis)
+- `POST /api/requests/{requestId}/message` : Ajouter un message à une demande
 
-| Méthode | Endpoint | Description | Authentification |
-|---------|----------|-------------|-------------------|
-| POST | `/api/requests` | Soumettre une demande | Patient |
-| GET | `/api/requests` | Lister les demandes du patient | Patient |
-| POST | `/api/requests/{requestId}/message` | Ajouter un message à une demande | Patient |
+##### Notifications (`/api/notifications`)
+- `GET /api/notifications` : Lister toutes les notifications (compte ACTIVE requis)
+- `GET /api/notifications/{requestId}` : Obtenir une notification par ID
 
 #### Communication RabbitMQ
 - **Publie sur :** `patient-exchange` avec routing key `patient.sync.request`
-- **Queue :** `patient.sync.queue`
-- **Écoute :** `patient.sync.queue` (pour les réponses)
+- **Publie sur :** `request-exchange` avec routing key `patient.request.created`
+- **Écoute :** `notification.queue` (pour les réponses aux demandes)
 
 #### Swagger UI
 - **URL :** http://localhost:8081/swagger-ui/index.html
@@ -209,34 +207,30 @@ Le projet suit une architecture microservices avec les composants suivants :
 - JWT (JJWT 0.11.5)
 - Swagger/OpenAPI
 
-#### Endpoints
+#### Endpoints principaux
 
 ##### Authentification (`/api/auth`)
-
-| Méthode | Endpoint | Description | Authentification |
-|---------|----------|-------------|-------------------|
-| POST | `/api/auth/register` | Inscription d'un nouveau provider | Public |
-| POST | `/api/auth/login` | Connexion provider | Public |
-| GET | `/api/auth/profile` | Récupérer le profil du provider | Provider |
-| PUT | `/api/auth/complete-profile` | Compléter le profil provider | Provider |
+- `POST /api/auth/register` : Inscription d'un nouveau provider
+- `POST /api/auth/login` : Connexion provider
+- `GET /api/auth/profile` : Profil du provider connecté
+- `PUT /api/auth/complete-profile` : Compléter le profil provider
+- `GET /api/auth/providers/list` : Liste publique de tous les providers
 
 ##### Gestion des Patients (`/api/providers`)
+- `GET /api/providers/patients/all` : Récupérer tous les patients
+- `GET /api/providers/patients` : Récupérer les patients par statut
+- `GET /api/providers/patients/{patientId}` : Détails d'un patient
+- `PUT /api/providers/patients/{patientId}/status` : Mettre à jour le statut d'un patient
+- `POST /api/providers/patients/sync` : Synchroniser tous les patients
+- `POST /api/providers/patient/{patientId}/activate` : Activer un patient
+- `POST /api/providers/patient/{patientId}/suspend` : Suspendre un patient
 
-| Méthode | Endpoint | Description | Authentification |
-|---------|----------|-------------|-------------------|
-| GET | `/api/providers/patients` | Lister les patients (filtrés par statut) | Provider |
-| GET | `/api/providers/patients/{patientId}` | Détails d'un patient | Provider |
-| PUT | `/api/providers/patients/{patientId}/status` | Mettre à jour le statut d'un patient | Provider |
-
-##### Actions sur les Patients (`/api/providers/patient`)
-
-| Méthode | Endpoint | Description | Authentification |
-|---------|----------|-------------|-------------------|
-| POST | `/api/providers/patient/{patientId}/activate` | Activer un patient | Provider |
-| POST | `/api/providers/patient/{patientId}/suspend` | Suspendre un patient | Provider |
+##### Dossiers Médicaux (`/api/providers/medical-records`)
+- `POST /api/providers/medical-records` : Créer un dossier médical (via RabbitMQ)
 
 #### Communication RabbitMQ
 - **Écoute :** `patient.sync.queue` (reçoit les nouveaux patients)
+- **Publie sur :** `medical-record-exchange` avec routing key `medical.record.create`
 - **Exchange :** `patient-exchange`
 - **Routing Key :** `patient.sync.request`
 
@@ -254,44 +248,87 @@ Le projet suit une architecture microservices avec les composants suivants :
 #### Configuration
 - **Application Name :** medicalrecord-service
 - **Port :** 8083
-- **Base de données :** PostgreSQL (jdbc:postgresql://localhost:5432/medicaldb)
-- **JWT Validation :** Via OAuth2 Resource Server
+- **Base de données :** MongoDB (mongodb://localhost:27017/MaBase)
+- **JWT Validation :** Via OAuth2 Resource Server avec clé secrète HS256
 
 #### Technologies
 - Spring Boot 3.2.4
 - Spring Security (OAuth2 Resource Server)
-- PostgreSQL (base de données relationnelle)
+- MongoDB
+- RabbitMQ
 - Swagger/OpenAPI
 
-#### Endpoints
+#### Endpoints principaux
+
+##### Opérations de Lecture (`/api/records/read`)
+- `GET /api/records/read/patient/{patientId}` : Dossiers d'un patient
+- `GET /api/records/read/search` : Recherche avancée (paramètres : patientId, providerId, from, to, limit)
 
 ##### Opérations CRUD (`/api/records`)
+- `GET /api/records` : Récupérer tous les dossiers
+- `GET /api/records/{id}` : Récupérer un dossier par ID
+- `PUT /api/records/{id}` : Mettre à jour un dossier (PROVIDER requis)
+- `DELETE /api/records/{id}` : Supprimer un dossier (PROVIDER requis)
 
-| Méthode | Endpoint | Description | Authentification |
-|---------|----------|-------------|-------------------|
-| POST | `/api/records` | Créer un nouveau dossier médical | Provider |
-| GET | `/api/records` | Récupérer tous les dossiers | Public |
-| GET | `/api/records/{id}` | Récupérer un dossier par ID | Public |
-| PUT | `/api/records/{id}` | Mettre à jour un dossier | Provider |
-| DELETE | `/api/records/{id}` | Supprimer un dossier | Provider |
+**Note :** La création de dossiers médicaux se fait uniquement via RabbitMQ depuis Provider-Service.
 
-##### Recherche (`/api/records/read`)
-
-| Méthode | Endpoint | Description | Authentification |
-|---------|----------|-------------|-------------------|
-| GET | `/api/records/read/patient/{patientId}` | Dossiers d'un patient | Public |
-| GET | `/api/records/read/search` | Recherche avancée | Public |
-
-**Paramètres de recherche :**
-- `patientId` (optionnel) : ID du patient
-- `providerId` (optionnel) : ID du provider
-- `from` (optionnel) : Date de début (format ISO)
-- `to` (optionnel) : Date de fin (format ISO)
-- `limit` (optionnel) : Nombre maximum de résultats
+#### Communication RabbitMQ
+- **Écoute :** `medical-record.queue` (reçoit les demandes de création de dossiers)
 
 #### Swagger UI
 - **URL :** http://localhost:8083/swagger-ui/index.html
 - **API Docs :** http://localhost:8083/v3/api-docs
+
+---
+
+### 6. Request-Service
+
+**Port :** 8084  
+**Rôle :** Gestion des demandes de patients et réponses des providers
+
+#### Configuration
+- **Application Name :** request-service
+- **Port :** 8084
+- **Base de données :** MongoDB (mongodb://localhost:27017/MaBase)
+- **JWT Secret :** Configuré dans application.properties
+- **JWT Expiration :** 86400000 ms (24 heures)
+
+#### Technologies
+- Spring Boot
+- Spring Security
+- MongoDB
+- RabbitMQ
+- JWT (JJWT)
+- Swagger/OpenAPI
+
+#### Endpoints principaux
+
+##### Endpoints Patients (`/api/requests`)
+- `GET /api/requests/patient/{patientId}` : Récupérer les demandes d'un patient
+  - **PATIENT** : Retourne uniquement ses propres demandes
+  - **PROVIDER** : Retourne toutes les demandes d'un patient spécifique
+
+##### Endpoints Providers (`/api/requests`)
+- `GET /api/requests` : Récupérer toutes les demandes (PROVIDER uniquement)
+- `GET /api/requests/status/{status}` : Récupérer les demandes par statut (PROVIDER uniquement)
+- `GET /api/requests/provider/{providerId}` : Récupérer les demandes d'un provider (PROVIDER uniquement)
+- `GET /api/requests/provider/{providerId}/targeted` : Récupérer les demandes destinées à un provider (PROVIDER uniquement)
+- `GET /api/requests/{requestId}` : Récupérer une demande par ID (PROVIDER uniquement)
+- `PUT /api/requests/{requestId}/respond` : Répondre à une demande (PROVIDER uniquement)
+- `POST /api/requests/{requestId}/messages` : Ajouter un message à une demande (PROVIDER uniquement)
+
+**Notes importantes :**
+- Le champ `targetProviderId` indique si une demande est destinée à un provider spécifique
+- Si `targetProviderId = null`, la demande est visible par tous les providers
+- Le champ `providerId` indique quel provider a traité la demande (rempli lors de la réponse)
+
+#### Communication RabbitMQ
+- **Écoute :** `request.queue` (reçoit les nouvelles demandes de patients)
+- **Publie sur :** `notification-exchange` avec routing key `request.response` (envoie les réponses aux patients)
+
+#### Swagger UI
+- **URL :** http://localhost:8084/swagger-ui/index.html
+- **API Docs :** http://localhost:8084/v3/api-docs
 
 ---
 
@@ -307,21 +344,19 @@ Le projet suit une architecture microservices avec les composants suivants :
 - **Authentification :** JWT (JSON Web Tokens)
 - **Autorisation :** Spring Security avec RBAC
 - **Algorithme JWT :** HS256 (HMAC)
+- **Expiration JWT :** 24 heures
 
 ### Base de données
-- **Patient-Service & Provider-Service :** MongoDB (NoSQL)
+- **Tous les services :** MongoDB (NoSQL)
   - **Port :** 27017
   - **Base de données :** MaBase
-- **MedicalRecord-Service :** PostgreSQL (SQL relationnel)
-  - **Port :** 5432
-  - **Base de données :** medicaldb
-  - **Username :** postgres
-  - **Password :** (configuré dans application.properties)
+  - **URI :** mongodb://localhost:27017/MaBase
 
 ### Communication
 - **Message Broker :** RabbitMQ 3-management
 - **Service Discovery :** Netflix Eureka
 - **API Gateway :** Spring Cloud Gateway
+- **Configuration :** Spring Cloud Config (optionnel)
 
 ### Outils de développement
 - **Lombok :** Réduction du code boilerplate
@@ -357,29 +392,22 @@ Vérifier que RabbitMQ est démarré :
 - **Management UI :** http://localhost:15672
 - **Login :** guest / guest
 
-#### 3. Démarrer les bases de données
+#### 3. Démarrer MongoDB
 
-**MongoDB** (pour Patient-Service et Provider-Service) :
+**Windows :**
 ```bash
-# Windows
 mongod
+```
 
-# Linux/Mac
+**Linux/Mac :**
+```bash
 sudo systemctl start mongod
 ```
 
-**PostgreSQL** (pour MedicalRecord-Service) :
+**Créer la base de données (optionnel, créée automatiquement) :**
 ```bash
-# Windows (si installé comme service, il démarre automatiquement)
-# Sinon, utiliser pg_ctl
-
-# Linux/Mac
-sudo systemctl start postgresql
-
-# Créer la base de données
-psql -U postgres
-CREATE DATABASE medicaldb;
-\q
+mongosh
+use MaBase
 ```
 
 #### 4. Démarrer les microservices
@@ -414,7 +442,14 @@ mvn spring-boot:run
 ```
 Vérifier : http://localhost:8083/swagger-ui/index.html
 
-5. **Gateway-Service**
+5. **Request-Service**
+```bash
+cd Request-Service
+mvn spring-boot:run
+```
+Vérifier : http://localhost:8084/swagger-ui/index.html
+
+6. **Gateway-Service**
 ```bash
 cd Gateway-Service
 mvn spring-boot:run
@@ -430,6 +465,7 @@ Vérifier : http://localhost:8080
    - Patient-Service : http://localhost:8081/swagger-ui/index.html
    - Provider-Service : http://localhost:8082/swagger-ui/index.html
    - MedicalRecord-Service : http://localhost:8083/swagger-ui/index.html
+   - Request-Service : http://localhost:8084/swagger-ui/index.html
 
 3. **RabbitMQ Management :** http://localhost:15672
    - Vérifier les queues et exchanges
@@ -440,64 +476,86 @@ Vérifier : http://localhost:8080
 
 ### Vue d'ensemble
 
-La communication entre Patient-Service et Provider-Service se fait via RabbitMQ en utilisant un **Topic Exchange**.
+La communication entre les services se fait via RabbitMQ en utilisant des **Topic Exchanges**.
 
 ### Configuration
 
-#### Exchange
-- **Nom :** `patient-exchange`
-- **Type :** Topic Exchange
-- **Durabilité :** Durable
+#### Exchanges
 
-#### Queues
+| Exchange | Type | Description |
+|----------|------|-------------|
+| `patient-exchange` | Topic | Synchronisation des patients |
+| `request-exchange` | Topic | Demandes de patients |
+| `notification-exchange` | Topic | Notifications et réponses |
+| `medical-record-exchange` | Topic | Dossiers médicaux |
 
-| Queue | Description | Service |
-|-------|-------------|---------|
+#### Queues principales
+
+| Queue | Description | Services |
+|-------|-------------|----------|
 | `patient.sync.queue` | Synchronisation des nouveaux patients | Patient ↔ Provider |
-| `patient.requests.queue` | Demandes de patients (futures fonctionnalités) | Patient → Provider |
+| `request.queue` | Demandes de patients | Patient → Request |
+| `notification.queue` | Notifications aux patients | Request → Patient |
+| `medical-record.queue` | Création de dossiers médicaux | Provider → MedicalRecord |
 
 #### Routing Keys
 
 | Routing Key | Description | Direction |
 |-------------|-------------|-----------|
 | `patient.sync.request` | Nouveau patient inscrit | Patient → Provider |
-| `patient.sync.response` | Réponse de synchronisation | Provider → Patient |
-| `patient.requests.*` | Pattern pour les demandes | Patient → Provider |
+| `patient.request.created` | Nouvelle demande créée | Patient → Request |
+| `request.response` | Réponse à une demande | Request → Patient |
+| `medical.record.create` | Création d'un dossier médical | Provider → MedicalRecord |
 
 ### Flux de communication
 
+#### 1. Inscription d'un patient
 ```
-1. Patient s'inscrit dans Patient-Service
+Patient-Service (inscription)
    ↓
-2. Patient-Service publie le patient sur RabbitMQ
-   Exchange: patient-exchange
-   Routing Key: patient.sync.request
+Publie sur patient-exchange (routing key: patient.sync.request)
    ↓
-3. Provider-Service reçoit le patient via le listener
-   Queue: patient.sync.queue
+Provider-Service reçoit via patient.sync.queue
    ↓
-4. Provider-Service ajoute le patient à sa liste locale
+Provider-Service ajoute le patient à sa liste locale
+```
+
+#### 2. Soumission d'une demande
+```
+Patient-Service (POST /api/requests)
+   ↓
+Publie sur request-exchange (routing key: patient.request.created)
+   ↓
+Request-Service reçoit via request.queue
+   ↓
+Request-Service enregistre la demande
+```
+
+#### 3. Réponse à une demande
+```
+Request-Service (PUT /api/requests/{id}/respond)
+   ↓
+Publie sur notification-exchange (routing key: request.response)
+   ↓
+Patient-Service reçoit via notification.queue
+   ↓
+Patient-Service envoie une notification (email) au patient
+```
+
+#### 4. Création d'un dossier médical
+```
+Provider-Service (POST /api/providers/medical-records)
+   ↓
+Publie sur medical-record-exchange (routing key: medical.record.create)
+   ↓
+MedicalRecord-Service reçoit via medical-record.queue
+   ↓
+MedicalRecord-Service crée le dossier médical
 ```
 
 ### Format des messages
 
-Les messages sont sérialisés en JSON avec le format suivant :
-
-```json
-{
-  "id": "patient-id",
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "john.doe@example.com",
-  "phone": "+1234567890",
-  "accountStatus": "PENDING",
-  "dateOfBirth": "1990-01-01",
-  "gender": "MALE",
-  ...
-}
-```
-
-Pour plus de détails, voir [RABBITMQ_COMMUNICATION.md](RABBITMQ_COMMUNICATION.md)
+Les messages sont sérialisés en JSON. Pour plus de détails, voir [RAPPORT_ENDPOINTS.md](RAPPORT_ENDPOINTS.md)
 
 ---
 
@@ -512,19 +570,14 @@ Pour plus de détails, voir [RABBITMQ_COMMUNICATION.md](RABBITMQ_COMMUNICATION.m
 
 #### Bases de données
 
-**MongoDB** (Patient-Service & Provider-Service) :
+**MongoDB** (tous les services) :
 - **URI :** `mongodb://localhost:27017/MaBase`
 - **Port :** 27017
-
-**PostgreSQL** (MedicalRecord-Service) :
-- **URL :** `jdbc:postgresql://localhost:5432/medicaldb`
-- **Port :** 5432
-- **Username :** postgres
-- **Password :** (configuré dans application.properties)
 
 #### RabbitMQ
 - **Host :** localhost
 - **Port :** 5672
+- **Management Port :** 15672
 - **Username :** guest
 - **Password :** guest
 - **Management UI :** http://localhost:15672
@@ -535,10 +588,11 @@ Pour plus de détails, voir [RABBITMQ_COMMUNICATION.md](RABBITMQ_COMMUNICATION.m
 
 ### Fichiers de configuration
 
-Chaque service a son propre fichier `application.properties` :
+Chaque service a son propre fichier de configuration :
 - `Patient-Service/src/main/resources/application.properties`
 - `Provider-Service/src/main/resources/application.properties`
 - `Medicalrecord-Service/src/main/resources/application.properties`
+- `Request-Service/src/main/resources/application.properties`
 - `Gateway-Service/src/main/resources/application.yml`
 - `Eureka-Server/src/main/resources/application.properties`
 
@@ -564,9 +618,22 @@ Chaque service a son propre fichier `application.properties` :
 | Service | Endpoint | Rôle requis |
 |---------|----------|-------------|
 | Patient-Service | `/api/patient/**` | PATIENT |
-| Patient-Service | `/api/requests/**` | PATIENT |
+| Patient-Service | `/api/requests/**` | PATIENT (ACTIVE) |
+| Patient-Service | `/api/notifications/**` | PATIENT (ACTIVE) |
 | Provider-Service | `/api/providers/**` | PROVIDER |
-| MedicalRecord-Service | POST/PUT/DELETE `/api/records/**` | PROVIDER |
+| Request-Service | `/api/requests/**` | PROVIDER (sauf GET `/api/requests/patient/{id}`) |
+| MedicalRecord-Service | PUT/DELETE `/api/records/**` | PROVIDER |
+
+### Statuts de compte patient
+
+Certains endpoints nécessitent un compte **ACTIVE** :
+- `GET /api/patient/medical-history`
+- `POST /api/requests`
+- `POST /api/requests/{requestId}/message`
+- `GET /api/notifications`
+- `GET /api/notifications/{requestId}`
+
+Si le compte n'est pas ACTIVE, ces endpoints retournent **403 Forbidden**.
 
 ### Utilisation du token
 
@@ -580,8 +647,8 @@ curl -X GET http://localhost:8080/api/patient/profile \
 
 ## 📚 Documentation supplémentaire
 
-- [RABBITMQ_COMMUNICATION.md](RABBITMQ_COMMUNICATION.md) - Documentation détaillée de la communication RabbitMQ
-- [REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md) - Résumé du refactoring effectué
+- [RAPPORT_ENDPOINTS.md](RAPPORT_ENDPOINTS.md) - Documentation complète de tous les endpoints API
+- [Request-Service/DIAGRAMME_SEQUENCE_GUIDE.md](Request-Service/DIAGRAMME_SEQUENCE_GUIDE.md) - Diagrammes de séquence pour Request-Service
 
 ---
 
@@ -611,6 +678,13 @@ curl -X POST http://localhost:8080/api/auth/login \
   }'
 ```
 
+### Tester la récupération du profil (avec token)
+
+```bash
+curl -X GET http://localhost:8080/api/patient/profile \
+  -H "Authorization: Bearer <your-jwt-token>"
+```
+
 ### Vérifier la communication RabbitMQ
 
 1. Inscrire un patient via Patient-Service
@@ -622,14 +696,15 @@ curl -X POST http://localhost:8080/api/auth/login \
 ## 📝 Notes importantes
 
 - Tous les services doivent être démarrés dans l'ordre recommandé
-- **MongoDB** doit être en cours d'exécution avant de démarrer Patient-Service et Provider-Service
-- **PostgreSQL** doit être en cours d'exécution avant de démarrer MedicalRecord-Service
-- **RabbitMQ** doit être démarré avant Patient-Service et Provider-Service
+- **MongoDB** doit être en cours d'exécution avant de démarrer les services
+- **RabbitMQ** doit être démarré avant Patient-Service, Provider-Service, Request-Service et MedicalRecord-Service
 - **Eureka Server** doit être démarré en premier pour le service discovery
 - Les ports doivent être libres :
-  - Services : 8080, 8081, 8082, 8083, 8761
-  - Bases de données : 27017 (MongoDB), 5432 (PostgreSQL)
+  - Services : 8080, 8081, 8082, 8083, 8084, 8761
+  - Bases de données : 27017 (MongoDB)
   - RabbitMQ : 5672, 15672
+- Request-Service n'est pas routé via la Gateway (accès direct sur le port 8084)
+- Tous les services utilisent MongoDB (pas de PostgreSQL)
 
 ---
 

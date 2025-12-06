@@ -1,0 +1,346 @@
+@startuml Réception_Demande_Patient
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+
+title Réception d'une demande depuis Patient-Service
+
+participant "Patient-Service" as PS #LightBlue
+participant "RabbitMQ" as MQ #LightGreen
+participant "RequestListener" as RL #LightYellow
+participant "PatientRequestService" as PRS #LightCoral
+participant "PatientRequestRepository" as REPO #LightGray
+database "MongoDB" as DB #LightSteelBlue
+
+PS -> MQ: publish(PatientRequestMessageDTO)\nExchange: patient.requests.exchange\nRouting Key: patient.requests.key
+activate MQ
+note right of MQ: Queue: patient.requests.queue
+
+MQ -> RL: handlePatientRequest(Map<String, Object>)
+activate RL
+note right of RL: @RabbitListener(queues = PATIENT_REQUESTS_QUEUE)
+
+RL: convertToRequestDTO(Map)
+RL -> PRS: createRequest(PatientRequestMessageDTO)
+activate PRS
+
+PRS: convertToEntity(DTO)
+PRS: setStatus("EN_ATTENTE")
+PRS: setCreatedAt(LocalDateTime.now())
+PRS: setUpdatedAt(LocalDateTime.now())
+
+PRS -> REPO: save(PatientRequest)
+activate REPO
+
+REPO -> DB: insert(PatientRequest)
+activate DB
+DB --> REPO: PatientRequest (sauvegardé)
+deactivate DB
+
+REPO --> PRS: PatientRequest
+deactivate REPO
+
+PRS --> RL: PatientRequest
+note right of PRS: ✅ Demande créée avec succès
+deactivate PRS
+
+RL: log.info("✅ Demande traitée")
+deactivate RL
+deactivate MQ
+
+@enduml
+
+@startuml Consultation_Demandes_Provider
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+
+title Consultation des demandes par un Provider
+
+participant "Provider" as P #LightBlue
+participant "RequestController" as RC #LightYellow
+participant "PatientRequestService" as PRS #LightCoral
+participant "PatientRequestRepository" as REPO #LightGray
+database "MongoDB" as DB #LightSteelBlue
+
+P -> RC: GET /api/requests\nAuthorization: Bearer <JWT>
+activate RC
+
+RC: validate JWT token
+RC: check role = "PROVIDER"
+note right of RC: @PreAuthorize("hasRole('PROVIDER')")
+
+RC -> PRS: getAllRequests()
+activate PRS
+
+PRS -> REPO: findAll()
+activate REPO
+
+REPO -> DB: find({})
+activate DB
+DB --> REPO: List<PatientRequest>
+deactivate DB
+
+REPO --> PRS: List<PatientRequest>
+deactivate REPO
+
+loop Pour chaque demande
+    PRS: convertToDTO(PatientRequest)
+end
+
+PRS --> RC: List<PatientRequestMessageDTO>
+deactivate PRS
+
+RC --> P: ResponseEntity.ok(requests)\n200 OK
+deactivate RC
+
+@enduml
+
+@startuml Réponse_Provider_Demande
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+
+title Réponse d'un Provider à une demande
+
+participant "Provider" as P #LightBlue
+participant "RequestController" as RC #LightYellow
+participant "PatientRequestService" as PRS #LightCoral
+participant "PatientRequestRepository" as REPO #LightGray
+database "MongoDB" as DB #LightSteelBlue
+participant "RabbitMQ" as MQ #LightGreen
+participant "Patient-Service" as PS #LightPink
+
+P -> RC: PUT /api/requests/{requestId}/respond\nBody: {status, responseMessage}\nAuthorization: Bearer <JWT>
+activate RC
+
+RC: validate JWT token
+RC: extract providerId from JWT
+RC: extract providerName from JWT
+RC: validate requestBody (status required)
+
+alt Status manquant
+    RC --> P: 400 Bad Request\n{"error": "Le statut est requis"}
+else Status présent
+    RC -> PRS: updateRequestStatus(\n  requestId, status,\n  responseMessage, providerId, providerName)
+    activate PRS
+    
+    PRS -> REPO: findByRequestId(requestId)
+    activate REPO
+    
+    REPO -> DB: findOne({requestId: ...})
+    activate DB
+    DB --> REPO: Optional<PatientRequest>
+    deactivate DB
+    
+    REPO --> PRS: Optional<PatientRequest>
+    deactivate REPO
+    
+    alt Demande trouvée
+        PRS: request.setStatus(status)
+        PRS: request.setProviderId(providerId)
+        PRS: request.setProviderName(providerName)
+        PRS: request.setResponseMessage(responseMessage)
+        PRS: request.setResponseDate(LocalDateTime.now())
+        PRS: request.setUpdatedAt(LocalDateTime.now())
+        
+        PRS -> REPO: save(PatientRequest)
+        activate REPO
+        
+        REPO -> DB: update(PatientRequest)
+        activate DB
+        DB --> REPO: PatientRequest (mis à jour)
+        deactivate DB
+        
+        REPO --> PRS: PatientRequest
+        deactivate REPO
+        
+        PRS: convertToDTO(PatientRequest)
+        
+        PRS -> MQ: publishResponseToPatient(PatientRequest)
+        activate MQ
+        note right of PRS: RequestResponseDTO(requestId, status, responseMessage)\nExchange: request.responses.exchange\nRouting Key: request.responses.key
+        
+        MQ -> PS: RequestResponseDTO
+        deactivate MQ
+        
+        PRS --> RC: PatientRequestMessageDTO
+        deactivate PRS
+        
+        RC --> P: ResponseEntity.ok(updated)\n200 OK
+    else Demande non trouvée
+        PRS --> RC: null
+        deactivate PRS
+        RC --> P: 404 Not Found
+    end
+end
+
+deactivate RC
+
+@enduml
+
+@startuml Ajout_Message_Demande
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+
+title Ajout d'un message à une demande
+
+participant "Provider" as P #LightBlue
+participant "RequestController" as RC #LightYellow
+participant "PatientRequestService" as PRS #LightCoral
+participant "PatientRequestRepository" as REPO #LightGray
+database "MongoDB" as DB #LightSteelBlue
+
+P -> RC: POST /api/requests/{requestId}/messages\nBody: {content}\nAuthorization: Bearer <JWT>
+activate RC
+
+RC: validate JWT token
+RC: extract providerId from JWT
+RC: validate requestBody (content required)
+
+alt Content manquant
+    RC --> P: 400 Bad Request\n{"error": "Le contenu du message est requis"}
+else Content présent
+    RC -> PRS: addMessage(requestId, providerId, "PROVIDER", content)
+    activate PRS
+    
+    PRS -> REPO: findByRequestId(requestId)
+    activate REPO
+    
+    REPO -> DB: findOne({requestId: ...})
+    activate DB
+    DB --> REPO: Optional<PatientRequest>
+    deactivate DB
+    
+    REPO --> PRS: Optional<PatientRequest>
+    deactivate REPO
+    
+    alt Demande trouvée
+        PRS: Créer RequestMessage
+        PRS: message.setSenderId(providerId)
+        PRS: message.setSenderType("PROVIDER")
+        PRS: message.setContent(content)
+        PRS: message.setTimestamp(LocalDateTime.now())
+        PRS: request.getMessages().add(message)
+        PRS: request.setUpdatedAt(LocalDateTime.now())
+        
+        PRS -> REPO: save(PatientRequest)
+        activate REPO
+        
+        REPO -> DB: update(PatientRequest)
+        activate DB
+        DB --> REPO: PatientRequest (mis à jour)
+        deactivate DB
+        
+        REPO --> PRS: PatientRequest
+        deactivate REPO
+        
+        PRS: convertToDTO(PatientRequest)
+        
+        PRS --> RC: PatientRequestMessageDTO
+        deactivate PRS
+        
+        RC --> P: ResponseEntity.ok(updated)\n200 OK
+    else Demande non trouvée
+        PRS --> RC: null
+        deactivate PRS
+        RC --> P: 404 Not Found
+    end
+end
+
+deactivate RC
+
+@enduml
+
+@startuml Cycle_Vie_Complet_Demande
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceArrowThickness 2
+skinparam roundcorner 20
+skinparam maxmessagesize 60
+
+title Cycle de vie complet d'une demande
+
+participant "Patient" as PAT #LightBlue
+participant "Patient-Service" as PS #LightPink
+participant "RabbitMQ" as MQ #LightGreen
+participant "RequestListener" as RL #LightYellow
+participant "PatientRequestService" as PRS #LightCoral
+participant "MongoDB" as DB #LightSteelBlue
+participant "Provider" as PROV #LightCyan
+participant "RequestController" as RC #LightYellow
+
+== Phase 1: Création de la demande ==
+
+PAT -> PS: Créer demande
+activate PS
+PS -> MQ: publish(PatientRequestMessageDTO)
+activate MQ
+MQ -> RL: handlePatientRequest()
+activate RL
+RL -> PRS: createRequest()
+activate PRS
+PRS -> DB: save(PatientRequest)
+activate DB
+DB --> PRS: PatientRequest
+deactivate DB
+PRS --> RL: PatientRequest
+deactivate PRS
+deactivate RL
+deactivate MQ
+PS --> PAT: Demande créée
+deactivate PS
+
+== Phase 2: Consultation par Provider ==
+
+PROV -> RC: GET /api/requests\n+ JWT
+activate RC
+RC -> PRS: getAllRequests()
+activate PRS
+PRS -> DB: findAll()
+activate DB
+DB --> PRS: List<PatientRequest>
+deactivate DB
+PRS --> RC: List<PatientRequestMessageDTO>
+deactivate PRS
+RC --> PROV: 200 OK + Liste des demandes
+deactivate RC
+
+== Phase 3: Réponse du Provider ==
+
+PROV -> RC: PUT /api/requests/{id}/respond\n{status, responseMessage}\n+ JWT
+activate RC
+RC -> PRS: updateRequestStatus()
+activate PRS
+PRS -> DB: findByRequestId() puis save()
+activate DB
+DB --> PRS: PatientRequest (mis à jour)
+deactivate DB
+PRS -> MQ: publishResponseToPatient()
+activate MQ
+MQ -> PS: RequestResponseDTO
+deactivate MQ
+PRS --> RC: PatientRequestMessageDTO
+deactivate PRS
+RC --> PROV: 200 OK
+deactivate RC
+
+== Phase 4: Notification Patient ==
+
+PS -> PAT: Notification de réponse
+activate PS
+PS --> PAT: Demande traitée
+deactivate PS
+
+@enduml
+
+

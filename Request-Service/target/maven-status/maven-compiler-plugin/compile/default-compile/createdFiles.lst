@@ -1,0 +1,14 @@
+com\request_service\dto\PatientRequestMessageDTO.class
+com\request_service\models\PatientRequest$RequestMessage.class
+com\request_service\config\SecurityConfig.class
+com\request_service\controllers\RequestController.class
+com\request_service\services\PatientRequestService.class
+com\request_service\config\OpenApiConfig.class
+com\request_service\config\RabbitConfig.class
+com\request_service\RequestServiceApplication.class
+com\request_service\dto\PatientRequestMessageDTO$MessageDTO.class
+com\request_service\models\PatientRequest.class
+com\request_service\repository\PatientRequestRepository.class
+com\request_service\config\JwtConfig.class
+com\request_service\listeners\RequestListener.class
+com\request_service\dto\RequestResponseDTO.class

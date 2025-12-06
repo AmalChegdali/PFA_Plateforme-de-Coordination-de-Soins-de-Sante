@@ -20,8 +20,20 @@ public class RabbitConfig {
     public static final String PATIENT_STATUS_ROUTING_KEY = "patient.status.update";
     public static final String PATIENT_SYNC_QUEUE = "patient.sync.queue";
     public static final String PATIENT_SYNC_ROUTING_KEY = "patient.sync.request";
+    public static final String PATIENT_SYNC_REQUEST_QUEUE = "patient.sync.request.queue";
+    public static final String PATIENT_SYNC_REQUEST_ROUTING_KEY = "patient.sync.request.provider";
     public static final String PATIENT_SYNC_RESPONSE_QUEUE = "patient.sync.response.queue";
     public static final String PATIENT_SYNC_RESPONSE_ROUTING_KEY = "patient.sync.response";
+    
+    // ⚡ Communication pour les réponses aux demandes depuis Request-Service
+    public static final String REQUEST_RESPONSES_EXCHANGE = "request.responses.exchange";
+    public static final String REQUEST_RESPONSES_QUEUE = "request.responses.queue";
+    public static final String REQUEST_RESPONSES_ROUTING_KEY = "request.responses.key";
+    
+    // ⚡ Communication pour les demandes patients
+    public static final String PATIENT_REQUESTS_EXCHANGE = "patient.requests.exchange";
+    public static final String PATIENT_REQUESTS_QUEUE = "patient.requests.queue";
+    public static final String PATIENT_REQUESTS_ROUTING_KEY = "patient.requests.key";
 
     @Bean
     public Jackson2JsonMessageConverter messageConverter() {
@@ -62,6 +74,11 @@ public class RabbitConfig {
     }
 
     @Bean
+    public Queue patientSyncRequestQueue() {
+        return QueueBuilder.durable(PATIENT_SYNC_REQUEST_QUEUE).build();
+    }
+
+    @Bean
     public Queue patientSyncResponseQueue() {
         return QueueBuilder.durable(PATIENT_SYNC_RESPONSE_QUEUE).build();
     }
@@ -84,6 +101,14 @@ public class RabbitConfig {
     }
 
     @Bean
+    public Binding patientSyncRequestBinding() {
+        return BindingBuilder
+                .bind(patientSyncRequestQueue())
+                .to(patientExchange())
+                .with(PATIENT_SYNC_REQUEST_ROUTING_KEY);
+    }
+
+    @Bean
     public Binding patientSyncResponseBinding() {
         return BindingBuilder
                 .bind(patientSyncResponseQueue())
@@ -91,5 +116,45 @@ public class RabbitConfig {
                 .with(PATIENT_SYNC_RESPONSE_ROUTING_KEY);
     }
 
-    // ⚡ Laisser ici les autres queues/exchanges existants pour d’autres fonctionnalités
+    // ⚡ Exchange pour les demandes patients
+    @Bean
+    public TopicExchange patientRequestsExchange() {
+        return new TopicExchange(PATIENT_REQUESTS_EXCHANGE, true, false);
+    }
+
+    // ⚡ Queue pour les demandes patients
+    @Bean
+    public Queue patientRequestsQueue() {
+        return QueueBuilder.durable(PATIENT_REQUESTS_QUEUE).build();
+    }
+
+    // ⚡ Binding pour les demandes patients
+    @Bean
+    public Binding patientRequestsBinding() {
+        return BindingBuilder
+                .bind(patientRequestsQueue())
+                .to(patientRequestsExchange())
+                .with(PATIENT_REQUESTS_ROUTING_KEY);
+    }
+
+    // ⚡ Exchange pour recevoir les réponses depuis Request-Service
+    @Bean
+    public TopicExchange requestResponsesExchange() {
+        return new TopicExchange(REQUEST_RESPONSES_EXCHANGE, true, false);
+    }
+
+    // ⚡ Queue pour recevoir les réponses depuis Request-Service
+    @Bean
+    public Queue requestResponsesQueue() {
+        return QueueBuilder.durable(REQUEST_RESPONSES_QUEUE).build();
+    }
+
+    // ⚡ Binding pour recevoir les réponses depuis Request-Service
+    @Bean
+    public Binding requestResponsesBinding() {
+        return BindingBuilder
+                .bind(requestResponsesQueue())
+                .to(requestResponsesExchange())
+                .with(REQUEST_RESPONSES_ROUTING_KEY);
+    }
 }

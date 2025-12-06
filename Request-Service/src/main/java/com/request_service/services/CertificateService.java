@@ -1,0 +1,96 @@
+package com.request_service.services;
+
+import com.request_service.models.Certificate;
+import com.request_service.repository.CertificateRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Service pour gérer les certificats médicaux.
+ * 
+ * @author Request-Service Team
+ * @version 1.0
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class CertificateService {
+
+    private final CertificateRepository certificateRepository;
+
+    /**
+     * Récupère un certificat par son ID.
+     * 
+     * @param id L'ID du certificat
+     * @return Le certificat ou null si non trouvé
+     */
+    public Certificate getCertificateById(String id) {
+        Optional<Certificate> certificate = certificateRepository.findById(id);
+        return certificate.orElse(null);
+    }
+
+    /**
+     * Récupère un certificat par son certificateId.
+     * 
+     * @param certificateId L'ID unique du certificat
+     * @return Le certificat ou null si non trouvé
+     */
+    public Certificate getCertificateByCertificateId(String certificateId) {
+        Optional<Certificate> certificate = certificateRepository.findByCertificateId(certificateId);
+        return certificate.orElse(null);
+    }
+
+    /**
+     * Récupère tous les certificats d'un patient.
+     * 
+     * @param patientId L'ID du patient
+     * @return Liste des certificats du patient
+     */
+    public List<Certificate> getCertificatesByPatientId(String patientId) {
+        return certificateRepository.findByPatientId(patientId);
+    }
+
+    /**
+     * Récupère tous les certificats émis par un provider.
+     * 
+     * @param providerId L'ID du provider
+     * @return Liste des certificats émis par le provider
+     */
+    public List<Certificate> getCertificatesByProviderId(String providerId) {
+        return certificateRepository.findByProviderId(providerId);
+    }
+
+    /**
+     * Crée un nouveau certificat.
+     * 
+     * @param certificate Le certificat à créer
+     * @return Le certificat créé
+     */
+    public Certificate createCertificate(Certificate certificate) {
+        // Générer un certificateId unique si non fourni
+        if (certificate.getCertificateId() == null || certificate.getCertificateId().isEmpty()) {
+            String year = String.valueOf(LocalDate.now().getYear());
+            String uniqueId = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            certificate.setCertificateId("CERT-" + year + "-" + uniqueId);
+        }
+        
+        certificate.setStatus("ACTIVE");
+        certificate.setIssueDate(LocalDate.now());
+        certificate.setCreatedAt(LocalDateTime.now());
+        certificate.setUpdatedAt(LocalDateTime.now());
+        
+        Certificate saved = certificateRepository.save(certificate);
+        log.info("✅ Certificat créé : {}", saved.getCertificateId());
+        
+        return saved;
+    }
+}
+
+

@@ -25,7 +25,7 @@ public class PatientSyncService {
     private final RabbitTemplate rabbitTemplate;
 
     // ⚡ Communiquer avec RabbitMQ
-    @RabbitListener(queues = RabbitConfig.PATIENT_SYNC_QUEUE)
+    @RabbitListener(queues = RabbitConfig.PATIENT_SYNC_REQUEST_QUEUE)
     public void handleSyncRequest(PatientSyncRequest request) {
         log.info("Received sync request from provider: {} for status: {}",
                 request.getProviderId(), request.getStatus());

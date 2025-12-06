@@ -4,7 +4,7 @@ import java.time.LocalDate;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Past;
+import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 
 public class RegisterRequest {
@@ -21,7 +21,7 @@ public class RegisterRequest {
     private String firstName;
     private String lastName;
     private String phone;
-    @Past(message = "Date of birth must be in the past")
+    @PastOrPresent(message = "Date of birth must be today or in the past")
     private LocalDate dateOfBirth;
     private String gender;
     

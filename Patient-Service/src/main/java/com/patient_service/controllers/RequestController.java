@@ -62,33 +62,6 @@ public class RequestController {
                 .body(response);
     }
 
-    // ✅ 2. GET /api/requests
-    @GetMapping(produces = "application/json")
-    @Operation(summary = "Lister l'historique des demandes",
-               description = "Récupère l'historique des demandes. Nécessite un compte ACTIVE.")
-    public ResponseEntity<?> getRequests(
-            Authentication authentication
-    ) {
-        // Vérifier que le patient est authentifié
-        Patient patient = (Patient) authentication.getPrincipal();
-        
-        // Vérifier que le compte est activé
-        if (patient.getAccountStatus() != AccountStatus.ACTIVE) {
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("error", "Account not activated");
-            errorResponse.put("message", "Votre compte n'est pas encore activé. Veuillez attendre l'approbation du prestataire de santé.");
-            errorResponse.put("accountStatus", patient.getAccountStatus().name());
-            errorResponse.put("statusCode", HttpStatus.FORBIDDEN.value());
-            
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-                    .body(errorResponse);
-        }
-        
-        return ResponseEntity.ok()
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-                .body(requestService.getPatientRequests(authentication));
-    }
 
     // ✅ 3. POST /api/requests/{requestId}/message
     @PostMapping("/{requestId}/message")

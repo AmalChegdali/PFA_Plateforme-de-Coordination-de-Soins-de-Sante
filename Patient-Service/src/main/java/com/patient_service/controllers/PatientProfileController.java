@@ -1,19 +1,29 @@
 package com.patient_service.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
+
+import com.patient_service.dto.MedicalHistoryResponse;
 import com.patient_service.dto.PatientProfileDTO;
 import com.patient_service.dto.ProfileStatusResponse;
+import com.patient_service.enums.AccountStatus;
 import com.patient_service.models.Patient;
+import com.patient_service.services.MedicalRecordClientService;
 import com.patient_service.services.PatientService;
 
 import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/patient")
@@ -23,6 +33,9 @@ public class PatientProfileController {
 
     @Autowired
     private PatientService patientService;
+
+    @Autowired
+    private MedicalRecordClientService medicalRecordClientService;
 
     // ✅ PROFILE STATUS
     @GetMapping("/profile-status")
@@ -67,6 +80,50 @@ public class PatientProfileController {
             return ResponseEntity.ok(convertToProfileDTO(updatedPatient));
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // ✅ GET MEDICAL HISTORY
+    @GetMapping("/medical-history")
+    @Operation(summary = "Get patient medical history", 
+               description = "Récupère tous les dossiers médicaux du patient authentifié. " +
+                           "Nécessite un compte ACTIVE.")
+    public ResponseEntity<?> getMedicalHistory(
+            Authentication authentication,
+            HttpServletRequest request) {
+        try {
+            Patient patient = (Patient) authentication.getPrincipal();
+            
+            // Vérifier que le compte est activé
+            if (patient.getAccountStatus() != AccountStatus.ACTIVE) {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("error", "Account not activated");
+                errorResponse.put("message", "Votre compte n'est pas encore activé. Veuillez attendre l'approbation du prestataire de santé.");
+                errorResponse.put("accountStatus", patient.getAccountStatus().name());
+                errorResponse.put("statusCode", HttpStatus.FORBIDDEN.value());
+                
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+            }
+            
+            // Extraire le token JWT depuis le header Authorization
+            String authHeader = request.getHeader("Authorization");
+            String jwtToken = null;
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                jwtToken = authHeader.substring(7);
+            }
+            
+            // Récupérer les dossiers médicaux depuis Medicalrecord-Service
+            List<MedicalHistoryResponse> medicalRecords = 
+                    medicalRecordClientService.getPatientMedicalRecords(patient.getId(), jwtToken);
+            
+            return ResponseEntity.ok(medicalRecords);
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Internal server error");
+            errorResponse.put("message", "Erreur lors de la récupération de l'historique médical : " + e.getMessage());
+            errorResponse.put("statusCode", HttpStatus.INTERNAL_SERVER_ERROR.value());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 

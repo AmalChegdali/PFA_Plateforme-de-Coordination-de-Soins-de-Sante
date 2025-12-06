@@ -11,6 +11,7 @@ import com.provider_service.dto.AuthRequest;
 import com.provider_service.dto.AuthResponse;
 import com.provider_service.dto.ProfileCompletionRequest;
 import com.provider_service.dto.ProviderProfileDTO;
+import com.provider_service.dto.ProviderSummaryDTO;
 import com.provider_service.dto.RegisterRequest;
 import com.provider_service.models.Provider;
 import com.provider_service.services.JwtService;
@@ -20,6 +21,9 @@ import jakarta.validation.Valid;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -40,7 +44,7 @@ public class AuthController {
     @Operation(summary = "Register provider", description = "Registers a provider and returns a JWT token")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         try {
-            Provider provider = providerService.registerProvider(request.getEmail(), request.getPassword());
+            Provider provider = providerService.registerProvider(request);
             String token = jwtService.generateToken(provider);
 
             return ResponseEntity.ok(new AuthResponse(token, "Registration successful", provider.getEmail()));
@@ -93,6 +97,22 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/providers/list")
+    @Operation(summary = "List all providers", 
+               description = "Returns a public list of all providers. " +
+                           "This endpoint is accessible without authentication and allows patients to choose a provider when submitting a request.")
+    public ResponseEntity<List<ProviderSummaryDTO>> getAllProviders() {
+        try {
+            List<Provider> providers = providerService.getAllProviders();
+            List<ProviderSummaryDTO> providerDTOs = providers.stream()
+                    .map(this::convertToSummaryDTO)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(providerDTOs);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
+
     // ---------- MAPPER ----------
     private ProviderProfileDTO convertToProfileDTO(Provider provider) {
         ProviderProfileDTO dto = new ProviderProfileDTO();
@@ -103,6 +123,20 @@ public class AuthController {
         dto.setSpecialty(provider.getSpecialty());
         dto.setSubSpecialties(provider.getSubSpecialties());
         dto.setStateLicenses(provider.getStateLicenses());
+        dto.setPrimaryClinicName(provider.getPrimaryClinicName());
+        dto.setClinicAddress(provider.getClinicAddress());
+        dto.setContactNumber(provider.getContactNumber());
+        return dto;
+    }
+
+    private ProviderSummaryDTO convertToSummaryDTO(Provider provider) {
+        ProviderSummaryDTO dto = new ProviderSummaryDTO();
+        dto.setProviderID(provider.getId());
+        dto.setEmail(provider.getEmail());
+        dto.setFullName(provider.getFullName());
+        dto.setProfessionalTitle(provider.getProfessionalTitle());
+        dto.setSpecialty(provider.getSpecialty());
+        dto.setSubSpecialties(provider.getSubSpecialties());
         dto.setPrimaryClinicName(provider.getPrimaryClinicName());
         dto.setClinicAddress(provider.getClinicAddress());
         dto.setContactNumber(provider.getContactNumber());
