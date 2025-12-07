@@ -94,13 +94,26 @@ public class DataEnrichmentService {
         try {
             log.debug("🔍 Récupération des informations provider depuis MongoDB : {}", providerId);
             
+            // Essayer d'abord avec providerID, puis avec _id
             Query query = new Query(Criteria.where("providerID").is(providerId));
             Map provider = mongoTemplate.findOne(query, Map.class, "providers");
+            
+            // Si non trouvé avec providerID, essayer avec _id
+            if (provider == null) {
+                query = new Query(Criteria.where("_id").is(providerId));
+                provider = mongoTemplate.findOne(query, Map.class, "providers");
+            }
+            
+            // Si toujours non trouvé, essayer avec email (au cas où providerId serait un email)
+            if (provider == null && providerId.contains("@")) {
+                query = new Query(Criteria.where("email").is(providerId));
+                provider = mongoTemplate.findOne(query, Map.class, "providers");
+            }
             
             if (provider != null) {
                 String fullName = extractString(provider, "fullName");
                 
-                // Si fullName n'existe pas, essayer de construire depuis firstName/lastName
+                // Si fullName n'existe pas ou est vide, essayer de construire depuis firstName/lastName
                 if (fullName == null || fullName.isEmpty()) {
                     String firstName = extractString(provider, "firstName");
                     String lastName = extractString(provider, "lastName");
@@ -113,8 +126,91 @@ public class DataEnrichmentService {
                     }
                 }
                 
+                // Si toujours pas de nom, ne pas retourner l'email
+                if (fullName == null || fullName.isEmpty()) {
+                    log.warn("⚠️ Provider {} trouvé mais aucun nom disponible", providerId);
+                    return null;
+                }
+                
                 log.debug("✅ Informations provider récupérées : name={}", fullName);
                 return fullName;
+            } else {
+                log.warn("⚠️ Provider {} non trouvé dans MongoDB", providerId);
+            }
+        } catch (Exception e) {
+            log.warn("⚠️ Impossible de récupérer les informations provider {} : {}", providerId, e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Récupère les informations complètes d'un provider (nom, prénom, nom de famille).
+     * 
+     * @param providerId L'ID du provider
+     * @return ProviderInfo contenant les informations du provider, ou null si erreur
+     */
+    public ProviderInfo getProviderInfo(String providerId) {
+        if (providerId == null || providerId.isEmpty()) {
+            return null;
+        }
+        
+        try {
+            log.debug("🔍 Récupération des informations complètes provider depuis MongoDB : {}", providerId);
+            
+            // Essayer d'abord avec providerID, puis avec _id
+            Query query = new Query(Criteria.where("providerID").is(providerId));
+            Map provider = mongoTemplate.findOne(query, Map.class, "providers");
+            
+            // Si non trouvé avec providerID, essayer avec _id
+            if (provider == null) {
+                query = new Query(Criteria.where("_id").is(providerId));
+                provider = mongoTemplate.findOne(query, Map.class, "providers");
+            }
+            
+            // Si toujours non trouvé, essayer avec email
+            if (provider == null && providerId.contains("@")) {
+                query = new Query(Criteria.where("email").is(providerId));
+                provider = mongoTemplate.findOne(query, Map.class, "providers");
+            }
+            
+            if (provider != null) {
+                String fullName = extractString(provider, "fullName");
+                String firstName = extractString(provider, "firstName");
+                String lastName = extractString(provider, "lastName");
+                
+                // Si fullName n'existe pas, construire depuis firstName/lastName
+                if ((fullName == null || fullName.isEmpty()) && (firstName != null || lastName != null)) {
+                    if (firstName != null && lastName != null) {
+                        fullName = firstName + " " + lastName;
+                    } else if (firstName != null) {
+                        fullName = firstName;
+                    } else if (lastName != null) {
+                        fullName = lastName;
+                    }
+                }
+                
+                // Si firstName/lastName n'existent pas, essayer de les extraire de fullName
+                if ((firstName == null || firstName.isEmpty()) && fullName != null) {
+                    String[] parts = fullName.split("\\s+", 2);
+                    firstName = parts[0];
+                    if (parts.length > 1) {
+                        lastName = parts[1];
+                    }
+                }
+                
+                // Ne pas retourner si on n'a que l'email
+                if (fullName == null || fullName.isEmpty() || fullName.contains("@")) {
+                    log.warn("⚠️ Provider {} trouvé mais nom invalide : {}", providerId, fullName);
+                    return null;
+                }
+                
+                // Récupérer le titre professionnel
+                String professionalTitle = extractString(provider, "professionalTitle");
+                
+                log.debug("✅ Informations complètes provider récupérées : fullName={}, firstName={}, lastName={}, professionalTitle={}", 
+                        fullName, firstName, lastName, professionalTitle);
+                return new ProviderInfo(fullName, firstName, lastName, professionalTitle);
             }
         } catch (Exception e) {
             log.warn("⚠️ Impossible de récupérer les informations provider {} : {}", providerId, e.getMessage());
@@ -149,6 +245,39 @@ public class DataEnrichmentService {
 
         public String getName() {
             return name;
+        }
+    }
+    
+    /**
+     * Classe interne pour stocker les informations provider.
+     */
+    public static class ProviderInfo {
+        private final String fullName;
+        private final String firstName;
+        private final String lastName;
+        private final String professionalTitle;
+
+        public ProviderInfo(String fullName, String firstName, String lastName, String professionalTitle) {
+            this.fullName = fullName;
+            this.firstName = firstName != null ? firstName : "";
+            this.lastName = lastName != null ? lastName : "";
+            this.professionalTitle = professionalTitle != null ? professionalTitle : "";
+        }
+
+        public String getFullName() {
+            return fullName;
+        }
+
+        public String getFirstName() {
+            return firstName;
+        }
+
+        public String getLastName() {
+            return lastName;
+        }
+
+        public String getProfessionalTitle() {
+            return professionalTitle;
         }
     }
 }

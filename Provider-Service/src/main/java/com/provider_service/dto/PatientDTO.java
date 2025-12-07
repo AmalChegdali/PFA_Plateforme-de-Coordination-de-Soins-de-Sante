@@ -25,6 +25,9 @@ public class PatientDTO {
 
     // Nouveau champ pour la suspension
     private String suspensionReason;
+    
+    // Champ pour l'assignation à un provider
+    private String assignedProviderId; // ID du provider assigné à ce patient (null si non assigné)
 
     // Constructeur vide
     public PatientDTO() {}
@@ -90,4 +93,8 @@ public class PatientDTO {
     // ✅ Getter & Setter pour suspensionReason
     public String getSuspensionReason() { return suspensionReason; }
     public void setSuspensionReason(String suspensionReason) { this.suspensionReason = suspensionReason; }
+    
+    // ✅ Getter & Setter pour assignedProviderId
+    public String getAssignedProviderId() { return assignedProviderId; }
+    public void setAssignedProviderId(String assignedProviderId) { this.assignedProviderId = assignedProviderId; }
 }

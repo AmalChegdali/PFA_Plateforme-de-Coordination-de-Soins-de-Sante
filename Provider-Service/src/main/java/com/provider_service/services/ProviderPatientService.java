@@ -69,7 +69,7 @@ public class ProviderPatientService {
      * Récupère la liste des patients filtrés par statut.
      * Si la liste est vide et qu'on demande tous les patients, déclenche automatiquement une synchronisation.
      * 
-     * @param providerId L'ID du provider (non utilisé actuellement, réservé pour futures fonctionnalités)
+     * @param providerId L'ID du provider (utilisé pour filtrer les patients assignés)
      * @param status Le statut à filtrer ("ALL" pour tous les patients, ou un AccountStatus)
      * @return Liste des patients correspondant au filtre
      */
@@ -90,7 +90,7 @@ public class ProviderPatientService {
             }
         }
         
-        // Si "ALL" est demandé, retourner tous les patients
+        // Si "ALL" est demandé, retourner tous les patients (avec information d'assignation)
         if (STATUS_ALL.equalsIgnoreCase(status)) {
             return new ArrayList<>(patients);
         }
@@ -102,6 +102,74 @@ public class ProviderPatientService {
         return patients.stream()
                 .filter(p -> p.getAccountStatus() == filterStatus)
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * Récupère les patients assignés à un provider spécifique.
+     * 
+     * @param providerId L'ID du provider
+     * @return Liste des patients assignés à ce provider
+     */
+    public List<PatientDTO> getAssignedPatients(String providerId) {
+        return patients.stream()
+                .filter(p -> providerId != null && providerId.equals(p.getAssignedProviderId()))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Récupère les patients non assignés (sans provider assigné).
+     * 
+     * @return Liste des patients non assignés
+     */
+    public List<PatientDTO> getUnassignedPatients() {
+        return patients.stream()
+                .filter(p -> p.getAssignedProviderId() == null || p.getAssignedProviderId().isEmpty())
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Assigne un patient à un provider.
+     * 
+     * @param patientId L'ID du patient
+     * @param providerId L'ID du provider qui assigne
+     * @return Le patient mis à jour, ou null si non trouvé
+     */
+    public PatientDTO assignPatientToProvider(String patientId, String providerId) {
+        PatientDTO patient = getPatientById(null, patientId);
+        if (patient != null) {
+            String previousProviderId = patient.getAssignedProviderId();
+            patient.setAssignedProviderId(providerId);
+            log.info("✅ Patient {} assigné au provider {} (précédemment: {})", 
+                    patientId, providerId, previousProviderId != null ? previousProviderId : "non assigné");
+        } else {
+            log.warn("⚠️ Tentative d'assignation d'un patient inexistant : {}", patientId);
+        }
+        return patient;
+    }
+    
+    /**
+     * Désassigne un patient (retire l'assignation à un provider).
+     * 
+     * @param patientId L'ID du patient
+     * @param providerId L'ID du provider qui désassigne (vérification de sécurité)
+     * @return Le patient mis à jour, ou null si non trouvé
+     */
+    public PatientDTO unassignPatientFromProvider(String patientId, String providerId) {
+        PatientDTO patient = getPatientById(null, patientId);
+        if (patient != null) {
+            // Vérifier que le patient est bien assigné à ce provider
+            if (providerId.equals(patient.getAssignedProviderId())) {
+                patient.setAssignedProviderId(null);
+                log.info("✅ Patient {} désassigné du provider {}", patientId, providerId);
+            } else {
+                log.warn("⚠️ Tentative de désassignation d'un patient non assigné à ce provider : {} (assigné à: {})", 
+                        patientId, patient.getAssignedProviderId());
+                return null;
+            }
+        } else {
+            log.warn("⚠️ Tentative de désassignation d'un patient inexistant : {}", patientId);
+        }
+        return patient;
     }
 
     /**
@@ -142,6 +210,7 @@ public class ProviderPatientService {
 
     /**
      * Ajoute un patient s'il n'existe pas, ou met à jour s'il existe déjà.
+     * Préserve l'assignation existante lors de la mise à jour.
      * 
      * @param patient Le patient à ajouter ou mettre à jour
      */
@@ -149,13 +218,26 @@ public class ProviderPatientService {
         PatientDTO existing = findPatientById(patient.getId());
         
         if (existing != null) {
+            // Préserver l'assignation existante si le patient mis à jour n'a pas d'assignation
+            String preservedAssignment = existing.getAssignedProviderId();
+            
             // Mise à jour des champs existants
             updatePatientFields(existing, patient);
-            log.debug("Patient mis à jour : {}", patient.getId());
+            
+            // Si le patient mis à jour n'a pas d'assignation, préserver l'ancienne
+            if (patient.getAssignedProviderId() == null && preservedAssignment != null) {
+                existing.setAssignedProviderId(preservedAssignment);
+            }
+            
+            log.debug("Patient mis à jour : {} (assigné à: {})", 
+                    patient.getId(), existing.getAssignedProviderId());
         } else {
-            // Ajout d'un nouveau patient
+            // Ajout d'un nouveau patient (non assigné par défaut)
+            if (patient.getAssignedProviderId() == null) {
+                patient.setAssignedProviderId(null); // Explicitement non assigné
+            }
             patients.add(patient);
-            log.debug("Nouveau patient ajouté : {}", patient.getId());
+            log.debug("Nouveau patient ajouté : {} (non assigné)", patient.getId());
         }
     }
 
@@ -326,6 +408,7 @@ public class ProviderPatientService {
     /**
      * Met à jour les champs d'un patient existant avec les valeurs d'un nouveau patient.
      * Seuls les champs non-null du nouveau patient sont mis à jour.
+     * Préserve l'assignation existante si le patient mis à jour n'a pas d'assignation.
      * 
      * @param existing Le patient existant à mettre à jour
      * @param updated Le patient contenant les nouvelles valeurs
@@ -344,6 +427,10 @@ public class ProviderPatientService {
         if (updated.getZipCode() != null) existing.setZipCode(updated.getZipCode());
         if (updated.getCountry() != null) existing.setCountry(updated.getCountry());
         if (updated.getDateOfBirth() != null) existing.setDateOfBirth(updated.getDateOfBirth());
+        // Mettre à jour l'assignation seulement si elle est explicitement fournie
+        if (updated.getAssignedProviderId() != null) {
+            existing.setAssignedProviderId(updated.getAssignedProviderId());
+        }
     }
 
     /**

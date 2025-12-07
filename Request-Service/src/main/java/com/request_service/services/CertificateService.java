@@ -74,20 +74,30 @@ public class CertificateService {
      * @return Le certificat créé
      */
     public Certificate createCertificate(Certificate certificate) {
-        // Générer un certificateId unique si non fourni
-        if (certificate.getCertificateId() == null || certificate.getCertificateId().isEmpty()) {
+        // Générer un numéro de certificat si non fourni
+        if (certificate.getCertificateNumber() == null || certificate.getCertificateNumber().isEmpty()) {
             String year = String.valueOf(LocalDate.now().getYear());
             String uniqueId = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-            certificate.setCertificateId("CERT-" + year + "-" + uniqueId);
+            String certificateNumber = "CERT-" + year + "-" + uniqueId;
+            certificate.setCertificateNumber(certificateNumber);
+        }
+        
+        // Utiliser le certificateNumber comme certificateId si certificateId n'est pas fourni
+        if (certificate.getCertificateId() == null || certificate.getCertificateId().isEmpty()) {
+            certificate.setCertificateId(certificate.getCertificateNumber());
+        }
+        
+        // Initialiser la date d'émission si non fournie
+        if (certificate.getIssueDate() == null) {
+            certificate.setIssueDate(LocalDate.now());
         }
         
         certificate.setStatus("ACTIVE");
-        certificate.setIssueDate(LocalDate.now());
         certificate.setCreatedAt(LocalDateTime.now());
         certificate.setUpdatedAt(LocalDateTime.now());
         
         Certificate saved = certificateRepository.save(certificate);
-        log.info("✅ Certificat créé : {}", saved.getCertificateId());
+        log.info("✅ Certificat créé : {} (Numéro: {})", saved.getCertificateId(), saved.getCertificateNumber());
         
         return saved;
     }

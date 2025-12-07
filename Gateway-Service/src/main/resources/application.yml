@@ -7,21 +7,30 @@ spring:
 
   cloud:
     gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
       routes:
         - id: patient-service
-          uri: http://localhost:8081
+          uri: lb://patient-service
           predicates:
-            - Path=/api/patient/**,/api/auth/**,/api/requests/**
+            - Path=/api/patient/**,/api/auth/**,/api/requests/**,/api/notifications/**
 
         - id: provider-service
-          uri: http://localhost:8082
+          uri: lb://provider-service
           predicates:
             - Path=/api/providers/**,/api/provider/**
 
         - id: medical-record-service
-          uri: http://localhost:8083
+          uri: lb://medicalrecord-service
           predicates:
             - Path=/api/records/**
+
+        - id: request-service
+          uri: lb://request-service
+          predicates:
+            - Path=/api/requests/**
 
 eureka:
   client:
