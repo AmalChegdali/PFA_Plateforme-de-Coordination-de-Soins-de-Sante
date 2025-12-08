@@ -50,7 +50,7 @@ public class PatientProfileController {
         }
     }
 
-    // ✅ GET PROFILE
+    // GET PROFILE
     @GetMapping("/profile")
     @Operation(summary = "Get patient profile")
     public ResponseEntity<PatientProfileDTO> getProfile(Authentication authentication) {
@@ -63,7 +63,7 @@ public class PatientProfileController {
         }
     }
 
-    // ✅ UPDATE PROFILE
+    // UPDATE PROFILE
     @PutMapping("/complete-profile")
     @Operation(summary = "Update patient profile")
     public ResponseEntity<PatientProfileDTO> updateProfile(
@@ -83,7 +83,7 @@ public class PatientProfileController {
         }
     }
 
-    // ✅ GET MEDICAL HISTORY
+    //  GET MEDICAL HISTORY
     @GetMapping("/medical-history")
     @Operation(summary = "Get patient medical history", 
                description = "Récupère tous les dossiers médicaux du patient authentifié. " +
@@ -127,7 +127,7 @@ public class PatientProfileController {
         }
     }
 
-    // ✅ DTO MAPPER
+    //  DTO MAPPER
     private PatientProfileDTO convertToProfileDTO(Patient patient) {
         PatientProfileDTO dto = new PatientProfileDTO();
 
