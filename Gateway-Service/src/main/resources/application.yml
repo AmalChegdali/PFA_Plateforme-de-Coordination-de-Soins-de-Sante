@@ -12,8 +12,6 @@ spring:
     config:
       enabled: false
       fail-fast: false
-
-  cloud:
     gateway:
       discovery:
         locator:
@@ -76,7 +74,7 @@ spring:
             - Path=/api/requests/**,/api/certificates/**
           filters:
             - StripPrefix=0
-i
+
 eureka:
   client:
     service-url:
