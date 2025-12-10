@@ -42,7 +42,7 @@ pipeline {
                         dir("backend/${svc}") {
                             echo "=== Build du microservice : ${svc} ==="
                             sh 'ls -la'  // Vérifie le contenu
-                            sh './mvnw clean package -DskipTests' // Utilise Maven Wrapper
+                            sh './mvn clean package -DskipTests' // Utilise Maven Wrapper
                         }
                     }
                 }
