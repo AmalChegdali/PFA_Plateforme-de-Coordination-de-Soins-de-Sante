@@ -2,29 +2,24 @@ pipeline {
     agent any
 
     environment {
-        BACKEND_IMAGE_PREFIX = "backend-service"   // Préfixe pour les images backend
-        FRONTEND_IMAGE = "frontend-service:latest" // Image frontend
+        BACKEND_IMAGE_PREFIX = "backend-service"
     }
 
     stages {
 
-        /***************************************
-         * Étape 1 : Récupération du code source
-         ***************************************/
         stage('Checkout SCM') {
             steps {
+                // Cloner le dépôt Git
                 git branch: 'main',
                     url: 'https://github.com/Amal23-Hub/PFA_Plateforme-de-Coordination-de-Soins-de-Sant-.git',
                     credentialsId: 'ID12345'
             }
         }
 
-        /***************************************
-         * Étape 2 : Build des microservices backend
-         ***************************************/
         stage('Build Backend Microservices') {
             steps {
                 script {
+                    // Liste des microservices backend
                     def microservices = [
                         "Patient-Service",
                         "Provider-Service",
@@ -35,43 +30,23 @@ pipeline {
                         "Request-Service"
                     ]
 
+                    // Construire chaque microservice avec Maven dans Docker
                     for (svc in microservices) {
                         dir("backend/${svc}") {
                             echo "=== Build du microservice : ${svc} ==="
-                            sh 'ls -la'  // Vérification du contenu
-                            // Build avec Maven dans un container
-                            docker.image('maven:3.9.2-openjdk-17').inside {
-                                sh 'mvn clean package -DskipTests'
-                            }
+                            sh 'ls -la'  // Vérifie le contenu
+                            // Utilisation de Maven dans Docker
+                            sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.2-openjdk-17 mvn clean package -DskipTests'
                         }
                     }
                 }
             }
         }
 
-        /***************************************
-         * Étape 3 : Build frontend
-         ***************************************/
-        stage('Build Frontend') {
-            steps {
-                dir('frontend') {
-                    echo "=== Build Frontend ==="
-                    sh 'ls -la'
-                    // Build frontend dans un container Node.js
-                    docker.image('node:20-alpine').inside {
-                        sh 'npm install'
-                        sh 'npm run build'
-                    }
-                }
-            }
-        }
-
-        /***************************************
-         * Étape 4 : Construction des images Docker
-         ***************************************/
         stage('Build Docker Images') {
             steps {
                 script {
+                    // Construire les images Docker pour chaque microservice
                     def microservices = [
                         "Patient-Service",
                         "Provider-Service",
@@ -86,18 +61,10 @@ pipeline {
                         echo "=== Docker build ${svc} ==="
                         sh "docker build -t ${BACKEND_IMAGE_PREFIX}-${svc.toLowerCase()}:latest ./backend/${svc}"
                     }
-
-                    dir('frontend') {
-                        echo "=== Docker build Frontend ==="
-                        sh "docker build -t ${FRONTEND_IMAGE} ."
-                    }
                 }
             }
         }
 
-        /***************************************
-         * Étape 5 : Lancer les containers Docker
-         ***************************************/
         stage('Run Docker Containers') {
             steps {
                 script {
@@ -116,20 +83,18 @@ pipeline {
                         sh "docker rm -f ${containerName} || true"
                         sh "docker run -d --name ${containerName} ${BACKEND_IMAGE_PREFIX}-${svc.toLowerCase()}:latest"
                     }
-
-                    sh "docker rm -f frontend-container || true"
-                    sh "docker run -d -p 3000:80 --name frontend-container ${FRONTEND_IMAGE}"
                 }
             }
         }
+
     }
 
     post {
         always {
-            echo "Pipeline terminé !"
+            echo "Pipeline backend terminé !"
         }
         failure {
-            echo "Une erreur est survenue, vérifier les logs."
+            echo "Erreur lors du build backend, vérifier les logs."
         }
     }
 }
