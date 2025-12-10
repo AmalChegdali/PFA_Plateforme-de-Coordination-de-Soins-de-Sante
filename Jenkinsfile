@@ -1,30 +1,37 @@
 pipeline {
     agent any
+
     environment {
-        DOCKER_IMAGE = "maven:3.9.2-eclipse-temurin-17"
+        DOCKER_IMAGE_PREFIX = "sante-maroc" // préfixe pour vos images Docker
     }
+
     stages {
         stage('Checkout SCM') {
             steps {
-                git url: 'https://github.com/Amal23-Hub/PFA_Plateforme-de-Coordination-de-Soins-de-Sant-.git',
-                    branch: 'main',
-                    credentialsId: 'ID12345'
+                checkout([$class: 'GitSCM', 
+                          branches: [[name: '*/main']], 
+                          userRemoteConfigs: [[
+                              url: 'https://github.com/Amal23-Hub/PFA_Plateforme-de-Coordination-de-Soins-de-Sant-.git',
+                              credentialsId: 'ID12345'
+                          ]]
+                ])
             }
         }
 
         stage('Build Backend Microservices') {
             steps {
                 script {
-                    // Liste des microservices
-                    def microservices = ['Patient-Service', 'Medecin-Service', 'RendezVous-Service']
+                    // Récupère tous les dossiers contenant un pom.xml
+                    def services = sh(
+                        script: "find backend -name pom.xml -exec dirname {} \\;",
+                        returnStdout: true
+                    ).trim().split("\n")
 
-                    microservices.each { service ->
-                        dir("backend/${service}") {
-                            echo "=== Build du microservice : ${service} ==="
-                            
-                            // Build Maven dans Docker
+                    services.each { serviceDir ->
+                        dir(serviceDir) {
+                            echo "=== Build du microservice : ${serviceDir} ==="
                             sh """
-                                docker run --rm -v \$(pwd):/app -w /app ${DOCKER_IMAGE} mvn clean package -DskipTests
+                                docker run --rm -v \$(pwd):/app -w /app maven:3.9.2-eclipse-temurin-17 mvn clean package -DskipTests
                             """
                         }
                     }
@@ -35,14 +42,16 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    def microservices = ['Patient-Service', 'Medecin-Service', 'RendezVous-Service']
-                    
-                    microservices.each { service ->
-                        dir("backend/${service}") {
-                            echo "=== Build Docker image : ${service} ==="
-                            sh """
-                                docker build -t ${service.toLowerCase()}:latest .
-                            """
+                    def services = sh(
+                        script: "find backend -name pom.xml -exec dirname {} \\;",
+                        returnStdout: true
+                    ).trim().split("\n")
+
+                    services.each { serviceDir ->
+                        dir(serviceDir) {
+                            def imageName = "${DOCKER_IMAGE_PREFIX}/${serviceDir.split('/').last()}:latest"
+                            echo "=== Build Docker image : ${imageName} ==="
+                            sh "docker build -t ${imageName} ."
                         }
                     }
                 }
@@ -52,12 +61,18 @@ pipeline {
         stage('Run Docker Containers') {
             steps {
                 script {
-                    def microservices = ['Patient-Service', 'Medecin-Service', 'RendezVous-Service']
+                    def services = sh(
+                        script: "find backend -name pom.xml -exec dirname {} \\;",
+                        returnStdout: true
+                    ).trim().split("\n")
 
-                    microservices.each { service ->
-                        echo "=== Run Docker container : ${service} ==="
+                    services.each { serviceDir ->
+                        def containerName = serviceDir.split('/').last()
+                        def imageName = "${DOCKER_IMAGE_PREFIX}/${containerName}:latest"
+                        echo "=== Run Docker container : ${containerName} ==="
                         sh """
-                            docker run -d --name ${service.toLowerCase()} -p 8080:8080 ${service.toLowerCase()}:latest
+                            docker rm -f ${containerName} || true
+                            docker run -d --name ${containerName} -p 8${containerName.hashCode().toString().take(3)}:8080 ${imageName}
                         """
                     }
                 }
@@ -66,11 +81,11 @@ pipeline {
     }
 
     post {
-        always {
-            echo 'Pipeline terminé !'
+        success {
+            echo "Pipeline terminé avec succès !"
         }
         failure {
-            echo 'Erreur lors du pipeline, vérifier les logs.'
+            echo "Erreur lors du pipeline, vérifier les logs."
         }
     }
 }
