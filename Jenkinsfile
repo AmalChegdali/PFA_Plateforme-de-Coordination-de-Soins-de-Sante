@@ -1,39 +1,27 @@
 pipeline {
     agent any
-
-    environment {
-        DOCKER_IMAGE_PREFIX = "sante-maroc" // préfixe pour vos images Docker
-    }
-
     stages {
         stage('Checkout SCM') {
             steps {
-                checkout([$class: 'GitSCM', 
-                          branches: [[name: '*/main']], 
-                          userRemoteConfigs: [[
-                              url: 'https://github.com/Amal23-Hub/PFA_Plateforme-de-Coordination-de-Soins-de-Sant-.git',
-                              credentialsId: 'ID12345'
-                          ]]
-                ])
+                checkout scm
             }
         }
 
         stage('Build Backend Microservices') {
             steps {
                 script {
-                    // Récupère tous les dossiers contenant un pom.xml
-                    def services = sh(
+                    // Récupère tous les répertoires contenant un pom.xml
+                    def microservices = sh(
                         script: "find backend -name pom.xml -exec dirname {} \\;",
                         returnStdout: true
                     ).trim().split("\n")
 
-                    services.each { serviceDir ->
-                        dir(serviceDir) {
-                            echo "=== Build du microservice : ${serviceDir} ==="
-                            sh """
-                                docker run --rm -v \$(pwd):/app -w /app maven:3.9.2-eclipse-temurin-17 mvn clean package -DskipTests
-                            """
-                        }
+                    // Boucle sur chaque microservice
+                    for (ms in microservices) {
+                        echo "=== Build du microservice : ${ms} ==="
+                        sh """
+                        docker run --rm -v \$(pwd)/${ms}:/app -w /app maven:3.9.2-eclipse-temurin-17 mvn clean package -DskipTests
+                        """
                     }
                 }
             }
@@ -42,17 +30,17 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    def services = sh(
+                    def microservices = sh(
                         script: "find backend -name pom.xml -exec dirname {} \\;",
                         returnStdout: true
                     ).trim().split("\n")
 
-                    services.each { serviceDir ->
-                        dir(serviceDir) {
-                            def imageName = "${DOCKER_IMAGE_PREFIX}/${serviceDir.split('/').last()}:latest"
-                            echo "=== Build Docker image : ${imageName} ==="
-                            sh "docker build -t ${imageName} ."
-                        }
+                    for (ms in microservices) {
+                        def name = ms.tokenize('/')[-1] // Nom du microservice
+                        echo "=== Build Docker Image : ${name} ==="
+                        sh """
+                        docker build -t ${name.toLowerCase()}:latest ${ms}
+                        """
                     }
                 }
             }
@@ -61,18 +49,16 @@ pipeline {
         stage('Run Docker Containers') {
             steps {
                 script {
-                    def services = sh(
+                    def microservices = sh(
                         script: "find backend -name pom.xml -exec dirname {} \\;",
                         returnStdout: true
                     ).trim().split("\n")
 
-                    services.each { serviceDir ->
-                        def containerName = serviceDir.split('/').last()
-                        def imageName = "${DOCKER_IMAGE_PREFIX}/${containerName}:latest"
-                        echo "=== Run Docker container : ${containerName} ==="
+                    for (ms in microservices) {
+                        def name = ms.tokenize('/')[-1]
+                        echo "=== Run Docker Container : ${name} ==="
                         sh """
-                            docker rm -f ${containerName} || true
-                            docker run -d --name ${containerName} -p 8${containerName.hashCode().toString().take(3)}:8080 ${imageName}
+                        docker run -d --name ${name.toLowerCase()} -p 8080:8080 ${name.toLowerCase()}:latest
                         """
                     }
                 }
@@ -81,11 +67,11 @@ pipeline {
     }
 
     post {
-        success {
-            echo "Pipeline terminé avec succès !"
+        always {
+            echo 'Pipeline terminé !'
         }
         failure {
-            echo "Erreur lors du pipeline, vérifier les logs."
+            echo 'Erreur lors du pipeline, vérifier les logs.'
         }
     }
 }
