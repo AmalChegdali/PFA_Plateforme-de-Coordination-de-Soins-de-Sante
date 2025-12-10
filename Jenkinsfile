@@ -1,17 +1,21 @@
 pipeline {
-    agent any
+    agent {
+        docker {
+            image 'maven-git-image:latest'   // Mon image Maven + Git
+            args '-v $HOME/.m2:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock' // cache Maven + accès Docker
+        }
+    }
 
     environment {
         DOCKER_IMAGE_BACKEND = "backend-service:latest"
-        // DOCKER_IMAGE_FRONTEND = "frontend-service:latest"
-        GIT_CREDENTIALS_ID = "ID12345" // Ton GitHub PAT dans Jenkins
+       // DOCKER_IMAGE_FRONTEND = "frontend-service:latest"
+        GIT_CREDENTIALS_ID = "ID12345" // Mon GitHub PAT pour Jenkins
     }
 
     stages {
 
         stage('Checkout') {
             steps {
-                // Checkout sécurisé avec credentials
                 git branch: 'main', 
                     url: 'https://github.com/Amal23-Hub/PFA_Plateforme-de-Coordination-de-Soins-de-Sant-.git',
                     credentialsId: "${GIT_CREDENTIALS_ID}"
@@ -26,7 +30,6 @@ pipeline {
             }
         }
 
-        // Décommenter si frontend est nécessaire
         // stage('Build Frontend') {
         //     steps {
         //         dir('frontend') {
@@ -39,21 +42,19 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 sh 'docker build -t $DOCKER_IMAGE_BACKEND ./backend'
-                // sh 'docker build -t $DOCKER_IMAGE_FRONTEND ./frontend'
+               // sh 'docker build -t $DOCKER_IMAGE_FRONTEND ./frontend'
             }
         }
 
         stage('Run Docker Containers') {
             steps {
-                // Supprimer d'anciens containers si présents
+                // Supprimer les containers existants si nécessaire
                 sh 'docker rm -f backend-container || true'
                 // sh 'docker rm -f frontend-container || true'
 
-                // Lancer le container backend
+                // Lancer les containers
                 sh 'docker run -d -p 8080:8080 --name backend-container $DOCKER_IMAGE_BACKEND'
-
-                // Lancer le container frontend si nécessaire
-                // sh 'docker run -d -p 3000:80 --name frontend-container $DOCKER_IMAGE_FRONTEND'
+               // sh 'docker run -d -p 3000:80 --name frontend-container $DOCKER_IMAGE_FRONTEND'
             }
         }
     }
