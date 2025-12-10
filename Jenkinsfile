@@ -2,13 +2,10 @@ pipeline {
     agent any
 
     environment {
-        BACKEND_IMAGE_PREFIX = "backend-service"   // Préfixe pour les images backend
+        BACKEND_IMAGE_PREFIX = "backend-service"
     }
 
     stages {
-        /***************************************
-         * Étape 1 : Récupération du code source
-         ***************************************/
         stage('Checkout SCM') {
             steps {
                 git branch: 'main',
@@ -17,9 +14,6 @@ pipeline {
             }
         }
 
-        /***************************************
-         * Étape 2 : Build des microservices backend
-         ***************************************/
         stage('Build Backend Microservices') {
             steps {
                 script {
@@ -38,12 +32,9 @@ pipeline {
                             echo "=== Build du microservice : ${svc} ==="
                             sh 'ls -la'
 
-                            // Build Maven via Docker
+                            // Build Maven via Docker en utilisant le chemin relatif
                             sh """
-                               docker run --rm \
-                               -v \$PWD:/app -w /app \
-                               maven:3.9.2-eclipse-temurin-17 \
-                               mvn clean package -DskipTests
+                               docker run --rm -v \$PWD:/app -w /app maven:3.9.2-eclipse-temurin-17 mvn clean package -DskipTests
                                """
                         }
                     }
@@ -51,9 +42,6 @@ pipeline {
             }
         }
 
-        /***************************************
-         * Étape 3 : Construction des images Docker
-         ***************************************/
         stage('Build Docker Images') {
             steps {
                 script {
@@ -74,9 +62,6 @@ pipeline {
             }
         }
 
-        /***************************************
-         * Étape 4 : Lancer les containers Docker
-         ***************************************/
         stage('Run Docker Containers') {
             steps {
                 script {
