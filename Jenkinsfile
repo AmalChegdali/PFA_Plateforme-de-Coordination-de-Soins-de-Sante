@@ -1,86 +1,137 @@
 pipeline {
-    agent any  // Exécuter le pipeline sur n'importe quel agent Jenkins disponible
+    agent any
 
+    // Définition des variables d'environnement pour Docker
     environment {
-        // Définition des noms des images Docker pour les microservices
-        DOCKER_IMAGE_BACKEND = "backend-service:latest"
-       // DOCKER_IMAGE_FRONTEND = "frontend-service:latest"
-
-        // ID des credentials GitHub (PAT) configuré dans Jenkins
-        GIT_CREDENTIALS_ID = "ID12345"
+        BACKEND_IMAGE_PREFIX = "backend-service"   // Préfixe pour les images backend
+        FRONTEND_IMAGE = "frontend-service:latest" // Image frontend
     }
 
     stages {
-
-        // Étape 1 : Récupérer le code depuis Git
-        stage('Checkout') {
+        /***************************************
+         * Étape 1 : Récupération du code source
+         ***************************************/
+        stage('Checkout SCM') {
             steps {
-                // Utilisation des credentials pour authentification GitHub
-                git branch: 'main', 
+                // Cloner le dépôt Git en utilisant les credentials
+                git branch: 'main',
                     url: 'https://github.com/Amal23-Hub/PFA_Plateforme-de-Coordination-de-Soins-de-Sant-.git',
-                    credentialsId: "${GIT_CREDENTIALS_ID}"
-                // Cette étape clone le dépôt et positionne le workspace sur la branche 'main'
+                    credentialsId: 'ID12345'
             }
         }
 
-        // Étape 2 : Build du backend
-        stage('Build Backend') {
+        /***************************************
+         * Étape 2 : Build des microservices backend
+         ***************************************/
+        stage('Build Backend Microservices') {
             steps {
-                dir('backend') {  // Se positionner dans le dossier backend
-                    echo "Vérification du POM backend"
-                    sh 'ls -l pom.xml'  // Vérifie que le fichier pom.xml est présent
-                    echo "Build du backend avec Maven"
-                    sh 'mvn clean package -DskipTests'  // Compile et package le backend en ignorant les tests
+                script {
+                    // Liste des microservices backend
+                    def microservices = [
+                        "Patient-Service",
+                        "Provider-Service",
+                        "Medicalrecord-Service",
+                        "Gateway-Service",
+                        "Eureka-Server",
+                        "Config-server",
+                        "Request-Service"
+                    ]
+
+                    // Itérer sur chaque microservice
+                    for (svc in microservices) {
+                        dir("backend/${svc}") {
+                            echo "=== Build du microservice : ${svc} ==="
+                            sh 'ls -la'  // Vérifie le contenu
+                            sh './mvnw clean package -DskipTests' // Utilise Maven Wrapper
+                        }
+                    }
                 }
             }
         }
 
-        // Étape 3 : Build du frontend
-        // stage('Build Frontend') {
-        //     steps {
-        //         dir('frontend') {  // Se positionner dans le dossier frontend
-        //             echo "Vérification du POM frontend"
-        //             sh 'ls -l pom.xml'  // Vérifie que le fichier pom.xml est présent
-        //             echo "Build du frontend avec Maven"
-        //             sh 'mvn clean package -DskipTests'  // Compile et package le frontend
-        //         }
-        //     }
-        // }
-
-        // Étape 4 : Création des images Docker
-        stage('Build Docker Images') {
+        /***************************************
+         * Étape 3 : Build frontend (si présent)
+         ***************************************/
+        stage('Build Frontend') {
             steps {
-                echo "Création de l'image backend"
-                sh 'docker build -t $DOCKER_IMAGE_BACKEND ./backend'  // Build Docker image pour le backend
-
-                // echo "Création de l'image frontend"
-                // sh 'docker build -t $DOCKER_IMAGE_FRONTEND ./frontend'  // Build Docker image pour le frontend
+                dir('frontend') {
+                    echo "=== Build Frontend ==="
+                    sh 'ls -la'
+                    sh 'npm install'
+                    sh 'npm run build'
+                }
             }
         }
 
-        // Étape 5 : Lancer les containers Docker
+        /***************************************
+         * Étape 4 : Construction des images Docker
+         ***************************************/
+        stage('Build Docker Images') {
+            steps {
+                script {
+                    // Construire les images Docker pour chaque microservice backend
+                    def microservices = [
+                        "Patient-Service",
+                        "Provider-Service",
+                        "Medicalrecord-Service",
+                        "Gateway-Service",
+                        "Eureka-Server",
+                        "Config-server",
+                        "Request-Service"
+                    ]
+                    for (svc in microservices) {
+                        echo "=== Docker build ${svc} ==="
+                        sh "docker build -t ${BACKEND_IMAGE_PREFIX}-${svc.toLowerCase()}:latest ./backend/${svc}"
+                    }
+
+                    // Construire l'image frontend
+                    dir('frontend') {
+                        echo "=== Docker build Frontend ==="
+                        sh "docker build -t ${FRONTEND_IMAGE} ."
+                    }
+                }
+            }
+        }
+
+        /***************************************
+         * Étape 5 : Lancer les containers Docker
+         ***************************************/
         stage('Run Docker Containers') {
             steps {
-                echo "Suppression des containers existants (si présents)"
-                sh 'docker rm -f backend-container || true'  // Supprime le container backend existant
-                // sh 'docker rm -f frontend-container || true'  // Supprime le container frontend existant
+                script {
+                    // Backend
+                    def microservices = [
+                        "Patient-Service",
+                        "Provider-Service",
+                        "Medicalrecord-Service",
+                        "Gateway-Service",
+                        "Eureka-Server",
+                        "Config-server",
+                        "Request-Service"
+                    ]
+                    for (svc in microservices) {
+                        def containerName = "container-${svc.toLowerCase()}"
+                        sh "docker rm -f ${containerName} || true"
+                        sh "docker run -d --name ${containerName} ${BACKEND_IMAGE_PREFIX}-${svc.toLowerCase()}:latest"
+                    }
 
-                echo "Lancement du container backend"
-                sh 'docker run -d -p 8080:8080 --name backend-container $DOCKER_IMAGE_BACKEND'  // Run backend container
-
-                // echo "Lancement du container frontend"
-                // sh 'docker run -d -p 3000:80 --name frontend-container $DOCKER_IMAGE_FRONTEND'  // Run frontend container
+                    // Frontend
+                    sh "docker rm -f frontend-container || true"
+                    sh "docker run -d -p 3000:80 --name frontend-container ${FRONTEND_IMAGE}"
+                }
             }
         }
     }
 
-    // Étape post-exécution
+    /***************************************
+     * Post-actions : Toujours exécuter
+     ***************************************/
     post {
         always {
-            echo "Pipeline terminé !"  // Toujours affiché à la fin, succès ou échec
+            echo "Pipeline terminé !"
         }
         failure {
-            echo "Une erreur est survenue, vérifier les logs."  // Affiché seulement si le pipeline échoue
+            echo "Une erreur est survenue, vérifier les logs."
         }
     }
 }
