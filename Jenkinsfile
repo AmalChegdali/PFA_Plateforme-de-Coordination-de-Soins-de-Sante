@@ -2,24 +2,27 @@ pipeline {
     agent any
 
     environment {
-        BACKEND_IMAGE_PREFIX = "backend-service"
+        BACKEND_IMAGE_PREFIX = "backend-service"   // Préfixe pour les images backend
     }
 
     stages {
-
+        /***************************************
+         * Étape 1 : Récupération du code source
+         ***************************************/
         stage('Checkout SCM') {
             steps {
-                // Cloner le dépôt Git
                 git branch: 'main',
                     url: 'https://github.com/Amal23-Hub/PFA_Plateforme-de-Coordination-de-Soins-de-Sant-.git',
                     credentialsId: 'ID12345'
             }
         }
 
+        /***************************************
+         * Étape 2 : Build des microservices backend
+         ***************************************/
         stage('Build Backend Microservices') {
             steps {
                 script {
-                    // Liste des microservices backend
                     def microservices = [
                         "Patient-Service",
                         "Provider-Service",
@@ -30,23 +33,30 @@ pipeline {
                         "Request-Service"
                     ]
 
-                    // Construire chaque microservice avec Maven dans Docker
                     for (svc in microservices) {
                         dir("backend/${svc}") {
                             echo "=== Build du microservice : ${svc} ==="
-                            sh 'ls -la'  // Vérifie le contenu
-                            // Utilisation de Maven dans Docker
-                            sh 'docker run --rm -v $PWD:/app -w /app maven:3.9.2-openjdk-17 mvn clean package -DskipTests'
+                            sh 'ls -la'
+
+                            // Build Maven via Docker
+                            sh """
+                               docker run --rm \
+                               -v \$PWD:/app -w /app \
+                               maven:3.9.2-eclipse-temurin-17 \
+                               mvn clean package -DskipTests
+                               """
                         }
                     }
                 }
             }
         }
 
+        /***************************************
+         * Étape 3 : Construction des images Docker
+         ***************************************/
         stage('Build Docker Images') {
             steps {
                 script {
-                    // Construire les images Docker pour chaque microservice
                     def microservices = [
                         "Patient-Service",
                         "Provider-Service",
@@ -56,7 +66,6 @@ pipeline {
                         "Config-server",
                         "Request-Service"
                     ]
-
                     for (svc in microservices) {
                         echo "=== Docker build ${svc} ==="
                         sh "docker build -t ${BACKEND_IMAGE_PREFIX}-${svc.toLowerCase()}:latest ./backend/${svc}"
@@ -65,6 +74,9 @@ pipeline {
             }
         }
 
+        /***************************************
+         * Étape 4 : Lancer les containers Docker
+         ***************************************/
         stage('Run Docker Containers') {
             steps {
                 script {
@@ -77,7 +89,6 @@ pipeline {
                         "Config-server",
                         "Request-Service"
                     ]
-
                     for (svc in microservices) {
                         def containerName = "container-${svc.toLowerCase()}"
                         sh "docker rm -f ${containerName} || true"
@@ -86,7 +97,6 @@ pipeline {
                 }
             }
         }
-
     }
 
     post {
