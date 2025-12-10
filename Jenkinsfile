@@ -1,84 +1,86 @@
 pipeline {
-    // L'agent ici utilise une image Docker contenant Maven (pour le backend)
-    agent {
-        docker {
-            image 'maven-git-image:latest' // Image Docker utilisée pour exécuter Maven
-            args '-v $HOME/.m2:/root/.m2 -v /var/run/docker.sock:/var/run/docker.sock' // Montage du cache Maven et du socket Docker pour pouvoir builder et lancer des containers
-        }
-    }
+    agent any  // Exécuter le pipeline sur n'importe quel agent Jenkins disponible
 
-    // Variables d'environnement
     environment {
-        DOCKER_IMAGE_BACKEND = "backend-service:latest"   // Nom de l'image Docker backend
-       // DOCKER_IMAGE_FRONTEND = "frontend-service:latest" // Nom de l'image Docker frontend
-        GIT_CREDENTIALS_ID = "ID12345"                    // ID des credentials GitHub (token PAT)
+        // Définition des noms des images Docker pour les microservices
+        DOCKER_IMAGE_BACKEND = "backend-service:latest"
+       // DOCKER_IMAGE_FRONTEND = "frontend-service:latest"
+
+        // ID des credentials GitHub (PAT) configuré dans Jenkins
+        GIT_CREDENTIALS_ID = "ID12345"
     }
 
     stages {
 
-        // Étape 1 : Cloner le code depuis GitHub
+        // Étape 1 : Récupérer le code depuis Git
         stage('Checkout') {
             steps {
+                // Utilisation des credentials pour authentification GitHub
                 git branch: 'main', 
                     url: 'https://github.com/Amal23-Hub/PFA_Plateforme-de-Coordination-de-Soins-de-Sant-.git',
-                    credentialsId: "${GIT_CREDENTIALS_ID}" // Utilise le token PAT pour accéder au repo privé
+                    credentialsId: "${GIT_CREDENTIALS_ID}"
+                // Cette étape clone le dépôt et positionne le workspace sur la branche 'main'
             }
         }
 
-        // Étape 2 : Build du backend avec Maven
+        // Étape 2 : Build du backend
         stage('Build Backend') {
             steps {
-                dir('backend') { // Se place dans le dossier backend
-                    sh 'mvn clean package -DskipTests' // Compile et package le backend, sans exécuter les tests
+                dir('backend') {  // Se positionner dans le dossier backend
+                    echo "Vérification du POM backend"
+                    sh 'ls -l pom.xml'  // Vérifie que le fichier pom.xml est présent
+                    echo "Build du backend avec Maven"
+                    sh 'mvn clean package -DskipTests'  // Compile et package le backend en ignorant les tests
                 }
             }
         }
 
-        // Étape 3 : Build du frontend avec Node.js
+        // Étape 3 : Build du frontend
         // stage('Build Frontend') {
         //     steps {
-        //         dir('frontend') { // Se place dans le dossier frontend
-        //             sh 'npm install'  // Installe les dépendances du frontend
-        //             sh 'npm run build' // Build du frontend (génère les fichiers statiques dans /build ou /dist)
+        //         dir('frontend') {  // Se positionner dans le dossier frontend
+        //             echo "Vérification du POM frontend"
+        //             sh 'ls -l pom.xml'  // Vérifie que le fichier pom.xml est présent
+        //             echo "Build du frontend avec Maven"
+        //             sh 'mvn clean package -DskipTests'  // Compile et package le frontend
         //         }
         //     }
         // }
 
-        // Étape 4 : Création des images Docker pour backend et frontend
+        // Étape 4 : Création des images Docker
         stage('Build Docker Images') {
             steps {
-                // Build de l'image backend
-                sh 'docker build -t $DOCKER_IMAGE_BACKEND ./backend'
-                
-                // Build de l'image frontend
-               // sh 'docker build -t $DOCKER_IMAGE_FRONTEND ./frontend'
+                echo "Création de l'image backend"
+                sh 'docker build -t $DOCKER_IMAGE_BACKEND ./backend'  // Build Docker image pour le backend
+
+                // echo "Création de l'image frontend"
+                // sh 'docker build -t $DOCKER_IMAGE_FRONTEND ./frontend'  // Build Docker image pour le frontend
             }
         }
 
         // Étape 5 : Lancer les containers Docker
         stage('Run Docker Containers') {
             steps {
-                // Supprime les containers existants s'ils existent
-                sh 'docker rm -f backend-container || true'
-                // sh 'docker rm -f frontend-container || true'
+                echo "Suppression des containers existants (si présents)"
+                sh 'docker rm -f backend-container || true'  // Supprime le container backend existant
+                // sh 'docker rm -f frontend-container || true'  // Supprime le container frontend existant
 
-                // Lancer le container backend sur le port 8080
-                sh 'docker run -d -p 8080:8080 --name backend-container $DOCKER_IMAGE_BACKEND'
+                echo "Lancement du container backend"
+                sh 'docker run -d -p 8080:8080 --name backend-container $DOCKER_IMAGE_BACKEND'  // Run backend container
 
-                // Lancer le container frontend sur le port 3000
-                // sh 'docker run -d -p 3000:80 --name frontend-container $DOCKER_IMAGE_FRONTEND'
+                // echo "Lancement du container frontend"
+                // sh 'docker run -d -p 3000:80 --name frontend-container $DOCKER_IMAGE_FRONTEND'  // Run frontend container
             }
         }
     }
 
+    // Étape post-exécution
     post {
-        // Actions exécutées à la fin du pipeline, succès ou échec
         always {
-            echo "Pipeline terminé !"
+            echo "Pipeline terminé !"  // Toujours affiché à la fin, succès ou échec
         }
-        // Actions spécifiques si le pipeline échoue
         failure {
-            echo "Une erreur est survenue, vérifier les logs."
+            echo "Une erreur est survenue, vérifier les logs."  // Affiché seulement si le pipeline échoue
         }
     }
 }
