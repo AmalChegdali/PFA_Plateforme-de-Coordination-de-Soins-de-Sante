@@ -1,7 +1,7 @@
 pipeline {
     agent any
 
-    // Définition des variables d'environnement pour Docker
+    // Variables d'environnement
     environment {
         BACKEND_IMAGE_PREFIX = "backend-service"   // Préfixe pour les images backend
         FRONTEND_IMAGE = "frontend-service:latest" // Image frontend
@@ -13,7 +13,7 @@ pipeline {
          ***************************************/
         stage('Checkout SCM') {
             steps {
-                // Cloner le dépôt Git en utilisant les credentials
+                // Cloner le dépôt Git
                 git branch: 'main',
                     url: 'https://github.com/Amal23-Hub/PFA_Plateforme-de-Coordination-de-Soins-de-Sant-.git',
                     credentialsId: 'ID12345'
@@ -37,12 +37,12 @@ pipeline {
                         "Request-Service"
                     ]
 
-                    // Itérer sur chaque microservice
+                    // Build de chaque microservice
                     for (svc in microservices) {
                         dir("backend/${svc}") {
                             echo "=== Build du microservice : ${svc} ==="
-                            sh 'ls -la'  // Vérifie le contenu
-                            sh './mvn clean package -DskipTests' // Utilise Maven Wrapper
+                            sh 'ls -la'  // Vérifie le contenu du dossier
+                            sh 'mvn clean package -DskipTests' // Utilisation de Maven
                         }
                     }
                 }
@@ -50,7 +50,7 @@ pipeline {
         }
 
         /***************************************
-         * Étape 3 : Build frontend (si présent)
+         * Étape 3 : Build frontend
          ***************************************/
         stage('Build Frontend') {
             steps {
@@ -69,7 +69,7 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    // Construire les images Docker pour chaque microservice backend
+                    // Construire les images Docker backend
                     def microservices = [
                         "Patient-Service",
                         "Provider-Service",
@@ -84,7 +84,7 @@ pipeline {
                         sh "docker build -t ${BACKEND_IMAGE_PREFIX}-${svc.toLowerCase()}:latest ./backend/${svc}"
                     }
 
-                    // Construire l'image frontend
+                    // Construire l'image Docker frontend
                     dir('frontend') {
                         echo "=== Docker build Frontend ==="
                         sh "docker build -t ${FRONTEND_IMAGE} ."
