@@ -10,9 +10,7 @@ pipeline {
         stage('Build Backend Microservices') {
             steps {
                 script {
-                    // Récupère le répertoire absolu de Jenkins
                     def workspaceDir = pwd()
-                    
                     // Cherche tous les dossiers contenant un pom.xml
                     def microservices = sh(
                         script: "find backend -name pom.xml -exec dirname {} \\;",
@@ -21,9 +19,10 @@ pipeline {
 
                     for (ms in microservices) {
                         echo "=== Build du microservice : ${ms} ==="
-
-                        // Docker a besoin de chemins absolus correctement échappés
                         def dockerPath = "${workspaceDir}/${ms}".replace(" ", "\\ ")
+
+                        // Vérifie le contenu avant Maven
+                        sh "ls -l ${dockerPath}"
 
                         sh """
                         docker run --rm -v "${dockerPath}:/app" -w /app maven:3.9.2-eclipse-temurin-17 mvn clean package -DskipTests
@@ -70,11 +69,7 @@ pipeline {
     }
 
     post {
-        always {
-            echo 'Pipeline terminé !'
-        }
-        failure {
-            echo 'Erreur lors du pipeline, vérifier les logs.'
-        }
+        always { echo 'Pipeline terminé !' }
+        failure { echo 'Erreur lors du pipeline, vérifier les logs.' }
     }
 }
