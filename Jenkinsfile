@@ -10,7 +10,7 @@ pipeline {
         stage('Build Backend Microservices') {
             steps {
                 script {
-                    // Récupère le répertoire de travail actuel de Jenkins
+                    // Récupère le répertoire absolu de Jenkins
                     def workspaceDir = pwd()
                     
                     // Cherche tous les dossiers contenant un pom.xml
@@ -19,15 +19,14 @@ pipeline {
                         returnStdout: true
                     ).trim().split("\n")
 
-                    // Build pour chaque microservice
                     for (ms in microservices) {
                         echo "=== Build du microservice : ${ms} ==="
-                        
-                        // Chemin absolu et échappement des espaces
-                        def dockerPath = "${workspaceDir}/${ms}".replaceAll(" ", "\\\\ ")
+
+                        // Docker a besoin de chemins absolus correctement échappés
+                        def dockerPath = "${workspaceDir}/${ms}".replace(" ", "\\ ")
 
                         sh """
-                        docker run --rm -v ${dockerPath}:/app -w /app maven:3.9.2-eclipse-temurin-17 mvn clean package -DskipTests
+                        docker run --rm -v "${dockerPath}:/app" -w /app maven:3.9.2-eclipse-temurin-17 mvn clean package -DskipTests
                         """
                     }
                 }
@@ -37,7 +36,6 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    def workspaceDir = pwd()
                     def microservices = sh(
                         script: "find backend -name pom.xml -exec dirname {} \\;",
                         returnStdout: true
@@ -45,9 +43,8 @@ pipeline {
 
                     for (ms in microservices) {
                         def name = ms.tokenize('/')[-1]
-                        def dockerPath = "${workspaceDir}/${ms}".replaceAll(" ", "\\\\ ")
+                        def dockerPath = "${pwd()}/${ms}".replace(" ", "\\ ")
                         echo "=== Build Docker Image : ${name} ==="
-
                         sh "docker build -t ${name.toLowerCase()}:latest ${dockerPath}"
                     }
                 }
