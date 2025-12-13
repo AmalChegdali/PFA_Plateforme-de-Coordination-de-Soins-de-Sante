@@ -5,15 +5,14 @@ import { ProviderSidebar } from "@/components/provider-sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { translations } from "@/lib/translations"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { mockCertificates } from "@/lib/mock-data"
 import { Award, Download } from "lucide-react"
 
 export default function ProviderCertificates() {
-  const [lang, setLang] = useState("en")
+  const { lang, setLang, t } = useLanguage()
   const [user, setUser] = useState(null)
   const router = useRouter()
-  const t = translations[lang]
 
   useEffect(() => {
     const userData = sessionStorage.getItem("user")
@@ -31,11 +30,12 @@ export default function ProviderCertificates() {
 
   const handleDownload = (certificate) => {
     // In a real app, this would generate and download a PDF
-    alert(`Downloading certificate for ${certificate.patientName}`)
+    alert(`${t.downloadingCertificate} ${certificate.patientName}`)
   }
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    const locale = lang === "fr" ? "fr-FR" : lang === "ar" ? "ar-MA" : "en-US"
+    return new Date(dateString).toLocaleDateString(locale, {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -47,30 +47,30 @@ export default function ProviderCertificates() {
   const providerCertificates = mockCertificates.filter((c) => c.doctorId === user.id)
 
   return (
-    <div className={`flex min-h-screen ${lang === "ar" ? "rtl" : ""}`} dir={lang === "ar" ? "rtl" : "ltr"}>
-      <ProviderSidebar user={user} lang={lang} onLangChange={setLang} />
+    <div className="flex min-h-screen" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <ProviderSidebar user={user} />
 
       <main className="flex-1 p-6 lg:p-8 overflow-auto">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
           <div>
             <h1 className="text-3xl font-bold text-balance">{t.certificates}</h1>
-            <p className="text-muted-foreground">View and download issued medical certificates</p>
+            <p className="text-muted-foreground">{t.viewDownloadCertificates}</p>
           </div>
 
           {/* Certificates List */}
           <Card>
             <CardHeader>
-              <CardTitle>Issued Certificates</CardTitle>
-              <CardDescription>All medical certificates you have issued</CardDescription>
+              <CardTitle>{t.issuedCertificatesTitle}</CardTitle>
+              <CardDescription>{t.allIssuedCertificates}</CardDescription>
             </CardHeader>
             <CardContent>
               {providerCertificates.length === 0 ? (
                 <div className="text-center py-12">
                   <Award className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No certificates issued yet</p>
+                  <p className="text-muted-foreground">{t.noCertificatesYet}</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Certificates will appear here when you respond to requests with certificate generation enabled
+                    {t.certificatesWillAppear}
                   </p>
                 </div>
               ) : (
@@ -80,11 +80,11 @@ export default function ProviderCertificates() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-3 px-4 font-medium">Patient</th>
-                          <th className="text-left py-3 px-4 font-medium">Issue Date</th>
-                          <th className="text-left py-3 px-4 font-medium">Expiration Date</th>
-                          <th className="text-left py-3 px-4 font-medium">Status</th>
-                          <th className="text-left py-3 px-4 font-medium">Actions</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.patient}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.issueDate}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.expirationDateLabel}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.status}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.actions}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -106,7 +106,7 @@ export default function ProviderCertificates() {
                                 className="gap-2"
                               >
                                 <Download className="h-4 w-4" />
-                                Download PDF
+                                {t.downloadPDF}
                               </Button>
                             </td>
                           </tr>
@@ -124,10 +124,10 @@ export default function ProviderCertificates() {
                             <div>
                               <p className="font-medium">{certificate.patientName}</p>
                               <p className="text-sm text-muted-foreground">
-                                Issued: {formatDate(certificate.issueDate)}
+                                {t.issued}: {formatDate(certificate.issueDate)}
                               </p>
                               <p className="text-sm text-muted-foreground">
-                                Expires: {formatDate(certificate.expirationDate)}
+                                {t.expires}: {formatDate(certificate.expirationDate)}
                               </p>
                             </div>
                             <Badge variant="active" className="text-xs">

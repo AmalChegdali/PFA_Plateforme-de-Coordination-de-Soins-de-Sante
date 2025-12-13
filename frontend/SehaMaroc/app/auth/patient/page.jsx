@@ -9,17 +9,21 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LanguageSelector } from "@/components/language-selector"
 import { Logo } from "@/components/logo"
-import { translations } from "@/lib/translations"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { authenticateUser, registerPatient } from "@/lib/mock-data"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft } from "lucide-react"
 
 export default function PatientAuthPage() {
-  const [lang, setLang] = useState("en")
+  const { lang, setLang, t, mounted } = useLanguage()
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-  const t = translations[lang]
+
+  // Attendre que le contexte soit monté pour éviter les problèmes de SSR
+  if (!mounted) {
+    return null
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -44,8 +48,8 @@ export default function PatientAuthPage() {
         }
       } else {
         toast({
-          title: "Error",
-          description: "Invalid email or password",
+          title: t.error,
+          description: t.invalidCredentials,
           variant: "destructive",
         })
       }
@@ -66,8 +70,8 @@ export default function PatientAuthPage() {
     setTimeout(() => {
       sessionStorage.setItem("user", JSON.stringify(newUser))
       toast({
-        title: "Success",
-        description: "Account created successfully!",
+        title: t.success,
+        description: t.accountCreated,
       })
       router.push("/patient/profile?complete=true")
       setIsLoading(false)
@@ -76,7 +80,7 @@ export default function PatientAuthPage() {
 
   return (
     <div
-      className={`min-h-screen bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 ${lang === "ar" ? "rtl" : ""}`}
+      className="min-h-screen bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5"
       dir={lang === "ar" ? "rtl" : "ltr"}
     >
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -85,10 +89,10 @@ export default function PatientAuthPage() {
           <Link href="/">
             <Button variant="ghost" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back
+              {t.back}
             </Button>
           </Link>
-          <LanguageSelector currentLang={lang} onLangChange={setLang} />
+          <LanguageSelector />
         </div>
 
         <div className="flex flex-col items-center justify-center">
@@ -106,7 +110,7 @@ export default function PatientAuthPage() {
                   <TabsTrigger value="register">{t.register}</TabsTrigger>
                 </TabsList>
                 <CardTitle className="text-2xl">{t.patientLogin}</CardTitle>
-                <CardDescription>Enter your credentials to access your account</CardDescription>
+                <CardDescription>{t.enterCredentials}</CardDescription>
               </CardHeader>
 
               <TabsContent value="login">
@@ -123,7 +127,7 @@ export default function PatientAuthPage() {
                   </CardContent>
                   <CardFooter>
                     <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
-                      {isLoading ? "Loading..." : t.login}
+                      {isLoading ? t.loading : t.login}
                     </Button>
                   </CardFooter>
                 </form>
@@ -144,7 +148,7 @@ export default function PatientAuthPage() {
                   </CardContent>
                   <CardFooter>
                     <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoading}>
-                      {isLoading ? "Loading..." : t.register}
+                      {isLoading ? t.loading : t.register}
                     </Button>
                   </CardFooter>
                 </form>
@@ -152,7 +156,7 @@ export default function PatientAuthPage() {
             </Tabs>
           </Card>
 
-          <p className="mt-4 text-sm text-muted-foreground">Demo credentials: patient@sehamaroc.com / password</p>
+          <p className="mt-4 text-sm text-muted-foreground">{t.demoCredentialsPatient}</p>
         </div>
       </div>
     </div>

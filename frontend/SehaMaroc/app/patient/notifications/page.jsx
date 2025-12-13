@@ -5,16 +5,15 @@ import { PatientSidebar } from "@/components/patient-sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { translations } from "@/lib/translations"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { mockNotifications } from "@/lib/mock-data"
 import { Bell, Check } from "lucide-react"
 
 export default function PatientNotifications() {
-  const [lang, setLang] = useState("en")
+  const { lang, setLang, t } = useLanguage()
   const [user, setUser] = useState(null)
   const [notifications, setNotifications] = useState([])
   const router = useRouter()
-  const t = translations[lang]
 
   useEffect(() => {
     const userData = sessionStorage.getItem("user")
@@ -40,12 +39,13 @@ export default function PatientNotifications() {
     const now = new Date()
     const diffInHours = Math.floor((now - date) / (1000 * 60 * 60))
 
+    const locale = lang === "fr" ? "fr-FR" : lang === "ar" ? "ar-MA" : "en-US"
     if (diffInHours < 24) {
-      return `${diffInHours} hours ago`
+      return `${diffInHours} ${t.hoursAgo}`
     } else if (diffInHours < 48) {
-      return "Yesterday"
+      return t.yesterday
     } else {
-      return date.toLocaleDateString("en-US", {
+      return date.toLocaleDateString(locale, {
         month: "short",
         day: "numeric",
         year: "numeric",
@@ -58,8 +58,8 @@ export default function PatientNotifications() {
   const unreadCount = notifications.filter((n) => !n.read).length
 
   return (
-    <div className={`flex min-h-screen ${lang === "ar" ? "rtl" : ""}`} dir={lang === "ar" ? "rtl" : "ltr"}>
-      <PatientSidebar user={user} lang={lang} onLangChange={setLang} />
+    <div className="flex min-h-screen" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <PatientSidebar user={user} />
 
       <main className="flex-1 p-6 lg:p-8 overflow-auto">
         <div className="max-w-4xl mx-auto space-y-6">
@@ -73,22 +73,22 @@ export default function PatientNotifications() {
                 </Badge>
               )}
             </div>
-            <p className="text-muted-foreground">Stay updated on your medical requests and appointments</p>
+            <p className="text-muted-foreground">{t.stayUpdated}</p>
           </div>
 
           {/* Notifications List */}
           <Card>
             <CardHeader>
-              <CardTitle>All Notifications</CardTitle>
-              <CardDescription>Recent updates from your healthcare providers</CardDescription>
+              <CardTitle>{t.allNotifications}</CardTitle>
+              <CardDescription>{t.recentUpdates}</CardDescription>
             </CardHeader>
             <CardContent>
               {notifications.length === 0 ? (
                 <div className="text-center py-12">
                   <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No notifications yet</p>
+                  <p className="text-muted-foreground">{t.noNotificationsYet}</p>
                   <p className="text-sm text-muted-foreground mt-1">
-                    You'll receive notifications when doctors respond to your requests
+                    {t.receiveNotifications}
                   </p>
                 </div>
               ) : (
@@ -119,7 +119,7 @@ export default function PatientNotifications() {
                               className="gap-2 flex-shrink-0"
                             >
                               <Check className="h-4 w-4" />
-                              Mark as read
+                              {t.markAsReadButton}
                             </Button>
                           )}
                         </div>

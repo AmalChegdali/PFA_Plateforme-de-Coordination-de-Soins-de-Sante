@@ -6,16 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { translations } from "@/lib/translations"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { mockRequests } from "@/lib/mock-data"
 import { AlertCircle, FileText, Bell, Calendar, Plus } from "lucide-react"
 import Link from "next/link"
 
 export default function PatientDashboard() {
-  const [lang, setLang] = useState("en")
+  const { lang, setLang, t } = useLanguage()
   const [user, setUser] = useState(null)
   const router = useRouter()
-  const t = translations[lang]
 
   useEffect(() => {
     const userData = sessionStorage.getItem("user")
@@ -51,7 +50,8 @@ export default function PatientDashboard() {
   }
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    const locale = lang === "fr" ? "fr-FR" : lang === "ar" ? "ar-MA" : "en-US"
+    return new Date(dateString).toLocaleDateString(locale, {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -59,17 +59,17 @@ export default function PatientDashboard() {
   }
 
   return (
-    <div className={`flex min-h-screen ${lang === "ar" ? "rtl" : ""}`} dir={lang === "ar" ? "rtl" : "ltr"}>
-      <PatientSidebar user={user} lang={lang} onLangChange={setLang} />
+    <div className="flex min-h-screen" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <PatientSidebar user={user} />
 
       <main className="flex-1 p-6 lg:p-8 overflow-auto">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
           <div>
             <h1 className="text-3xl font-bold text-balance">
-              Welcome back{user.profile?.firstName ? `, ${user.profile.firstName}` : ""}
+              {t.welcomeBack}{user.profile?.firstName ? `, ${user.profile.firstName}` : ""}
             </h1>
-            <p className="text-muted-foreground">Manage your health records and appointments</p>
+            <p className="text-muted-foreground">{t.manageYourHealth}</p>
           </div>
 
           {/* Incomplete Profile Alert */}
@@ -80,7 +80,7 @@ export default function PatientDashboard() {
               <AlertDescription className="mt-2">
                 <p className="mb-3">{t.completeProfileMessage}</p>
                 <Link href="/patient/profile?complete=true">
-                  <Button className="bg-primary hover:bg-primary/90">Complete Profile Now</Button>
+                  <Button className="bg-primary hover:bg-primary/90">{t.completeProfileNow}</Button>
                 </Link>
               </AlertDescription>
             </Alert>
@@ -90,7 +90,7 @@ export default function PatientDashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Account Status</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{t.accountStatus}</CardTitle>
                 <AlertCircle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -136,8 +136,8 @@ export default function PatientDashboard() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Recent Requests</CardTitle>
-                  <CardDescription>Your last 5 medical requests</CardDescription>
+                  <CardTitle>{t.recentRequests}</CardTitle>
+                  <CardDescription>{t.last5Requests}</CardDescription>
                 </div>
                 <Link href="/patient/requests">
                   <Button className="gap-2 bg-primary hover:bg-primary/90">
@@ -151,8 +151,8 @@ export default function PatientDashboard() {
               {userRequests.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No requests yet</p>
-                  <p className="text-sm text-muted-foreground mt-1">Create your first request to get started</p>
+                  <p className="text-muted-foreground">{t.noRequests}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t.createFirstRequest}</p>
                 </div>
               ) : (
                 <div className="space-y-4">

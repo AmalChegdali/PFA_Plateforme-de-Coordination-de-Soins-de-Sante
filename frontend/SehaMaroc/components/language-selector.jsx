@@ -1,16 +1,18 @@
 "use client"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { Globe } from "lucide-react"
 
-export function LanguageSelector({ currentLang, onLangChange }) {
+export function LanguageSelector() {
+  const { lang, setLang } = useLanguage()
   const languages = [
     { code: "en", name: "English", flag: "🇬🇧" },
     { code: "fr", name: "Français", flag: "🇫🇷" },
     { code: "ar", name: "العربية", flag: "🇲🇦" },
   ]
 
-  const currentLanguage = languages.find((lang) => lang.code === currentLang)
+  const currentLanguage = languages.find((l) => l.code === lang)
 
   return (
     <DropdownMenu>
@@ -21,10 +23,10 @@ export function LanguageSelector({ currentLang, onLangChange }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {languages.map((lang) => (
-          <DropdownMenuItem key={lang.code} onClick={() => onLangChange(lang.code)} className="gap-2">
-            <span>{lang.flag}</span>
-            <span>{lang.name}</span>
+        {languages.map((l) => (
+          <DropdownMenuItem key={l.code} onClick={() => setLang(l.code)} className="gap-2">
+            <span>{l.flag}</span>
+            <span>{l.name}</span>
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

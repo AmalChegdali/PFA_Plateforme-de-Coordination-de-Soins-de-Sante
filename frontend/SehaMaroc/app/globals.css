@@ -136,6 +136,26 @@
 /* RTL Support for Arabic */
 [dir="rtl"] {
   direction: rtl;
+  text-align: right;
+}
+
+[dir="rtl"] .flex:not([class*="flex-col"]):not([class*="flex-row"]) {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] select {
+  text-align: right;
+  direction: rtl;
+}
+
+[dir="rtl"] .text-left {
+  text-align: right !important;
+}
+
+[dir="rtl"] .text-right {
+  text-align: left !important;
 }
 
 /* Custom status badge styles */

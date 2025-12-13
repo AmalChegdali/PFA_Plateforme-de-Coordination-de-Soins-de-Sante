@@ -10,11 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
-import { translations } from "@/lib/translations"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { AlertCircle, X } from "lucide-react"
 
 export default function PatientProfile() {
-  const [lang, setLang] = useState("en")
+  const { lang, setLang, t } = useLanguage()
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [allergies, setAllergies] = useState([])
@@ -24,7 +24,6 @@ export default function PatientProfile() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
-  const t = translations[lang]
 
   const shouldComplete = searchParams.get("complete") === "true"
 
@@ -71,8 +70,8 @@ export default function PatientProfile() {
       sessionStorage.setItem("user", JSON.stringify(updatedUser))
       setUser(updatedUser)
       toast({
-        title: "Success",
-        description: "Profile updated successfully!",
+        title: t.success,
+        description: t.profileUpdated,
       })
       setIsLoading(false)
       if (shouldComplete) {
@@ -106,15 +105,15 @@ export default function PatientProfile() {
   if (!user) return null
 
   return (
-    <div className={`flex min-h-screen ${lang === "ar" ? "rtl" : ""}`} dir={lang === "ar" ? "rtl" : "ltr"}>
-      <PatientSidebar user={user} lang={lang} onLangChange={setLang} />
+    <div className="flex min-h-screen" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <PatientSidebar user={user} />
 
       <main className="flex-1 p-6 lg:p-8 overflow-auto">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header */}
           <div>
             <h1 className="text-3xl font-bold text-balance">{t.myProfile}</h1>
-            <p className="text-muted-foreground">Manage your personal and medical information</p>
+            <p className="text-muted-foreground">{t.personalInformation}</p>
           </div>
 
           {/* Incomplete Profile Alert */}
@@ -130,8 +129,8 @@ export default function PatientProfile() {
           <form onSubmit={handleSubmit}>
             <Card>
               <CardHeader>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>Update your personal details</CardDescription>
+                <CardTitle>{t.personalInformation}</CardTitle>
+                <CardDescription>{t.personalInformation}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-4">
@@ -158,7 +157,7 @@ export default function PatientProfile() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                    <Label htmlFor="dateOfBirth">{t.dateOfBirth}</Label>
                     <Input
                       id="dateOfBirth"
                       name="dateOfBirth"
@@ -171,23 +170,22 @@ export default function PatientProfile() {
 
                 <div className="grid md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="gender">Gender</Label>
+                    <Label htmlFor="gender">{t.gender}</Label>
                     <Select name="gender" defaultValue={user.profile.gender || "male"}>
                       <SelectTrigger id="gender">
-                        <SelectValue placeholder="Select gender" />
+                        <SelectValue placeholder={t.gender} />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        <SelectItem value="male">{t.male}</SelectItem>
+                        <SelectItem value="female">{t.female}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="bloodType">Blood Type</Label>
+                    <Label htmlFor="bloodType">{t.bloodType}</Label>
                     <Select name="bloodType" defaultValue={user.profile.bloodType || "A+"}>
                       <SelectTrigger id="bloodType">
-                        <SelectValue placeholder="Select blood type" />
+                        <SelectValue placeholder={t.selectBloodType} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="A+">A+</SelectItem>
@@ -204,7 +202,7 @@ export default function PatientProfile() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="address">{t.address}</Label>
                   <Input
                     id="address"
                     name="address"
@@ -215,12 +213,12 @@ export default function PatientProfile() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
+                  <Label htmlFor="city">{t.city}</Label>
                   <Input id="city" name="city" placeholder="Casablanca" defaultValue={user.profile.city} required />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContact">Emergency Contact</Label>
+                  <Label htmlFor="emergencyContact">{t.emergencyContact}</Label>
                   <Input
                     id="emergencyContact"
                     name="emergencyContact"
@@ -235,22 +233,22 @@ export default function PatientProfile() {
 
             <Card className="mt-6">
               <CardHeader>
-                <CardTitle>Medical Information</CardTitle>
-                <CardDescription>Add your allergies and chronic diseases</CardDescription>
+                <CardTitle>{t.medicalInformation}</CardTitle>
+                <CardDescription>{t.medicalInformation}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Allergies */}
                 <div className="space-y-3">
-                  <Label>Allergies</Label>
+                  <Label>{t.allergies}</Label>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Add allergy"
+                      placeholder={t.enterAllergy}
                       value={newAllergy}
                       onChange={(e) => setNewAllergy(e.target.value)}
                       onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addAllergy())}
                     />
                     <Button type="button" onClick={addAllergy} variant="outline">
-                      Add
+                      {t.addAllergy}
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -271,16 +269,16 @@ export default function PatientProfile() {
 
                 {/* Chronic Diseases */}
                 <div className="space-y-3">
-                  <Label>Chronic Diseases</Label>
+                  <Label>{t.chronicDiseases}</Label>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Add chronic disease"
+                      placeholder={t.enterDisease}
                       value={newDisease}
                       onChange={(e) => setNewDisease(e.target.value)}
                       onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), addDisease())}
                     />
                     <Button type="button" onClick={addDisease} variant="outline">
-                      Add
+                      {t.addDisease}
                     </Button>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -303,7 +301,7 @@ export default function PatientProfile() {
 
             <div className="flex justify-end gap-4 mt-6">
               <Button type="submit" size="lg" className="bg-primary hover:bg-primary/90" disabled={isLoading}>
-                {isLoading ? "Saving..." : t.save}
+                {isLoading ? t.loading : t.save}
               </Button>
             </div>
           </form>

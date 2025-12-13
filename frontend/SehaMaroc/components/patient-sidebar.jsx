@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { LanguageSelector } from "@/components/language-selector"
 import { Logo } from "@/components/logo"
-import { translations } from "@/lib/translations"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { LayoutDashboard, User, FileText, History, Bell, LogOut, Menu, X } from "lucide-react"
 
-export function PatientSidebar({ user, lang, onLangChange }) {
+export function PatientSidebar({ user }) {
+  const { lang, setLang, t } = useLanguage()
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
-  const t = translations[lang]
 
   const navigation = [
     { name: t.dashboard, href: "/patient/dashboard", icon: LayoutDashboard },
@@ -95,7 +95,7 @@ export function PatientSidebar({ user, lang, onLangChange }) {
                   ? `${user.profile.firstName} ${user.profile.lastName}`
                   : user?.email}
               </p>
-              <p className="text-xs text-muted-foreground">Patient</p>
+              <p className="text-xs text-muted-foreground">{t.patient}</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -103,7 +103,7 @@ export function PatientSidebar({ user, lang, onLangChange }) {
               <LogOut className="h-4 w-4" />
               {t.logout}
             </Button>
-            <LanguageSelector currentLang={lang} onLangChange={onLangChange} />
+            <LanguageSelector />
           </div>
         </div>
       </aside>

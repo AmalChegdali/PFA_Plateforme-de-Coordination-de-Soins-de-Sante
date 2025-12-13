@@ -9,17 +9,16 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LanguageSelector } from "@/components/language-selector"
 import { Logo } from "@/components/logo"
-import { translations } from "@/lib/translations"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { authenticateUser, registerProvider } from "@/lib/mock-data"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft } from "lucide-react"
 
 export default function ProviderAuthPage() {
-  const [lang, setLang] = useState("en")
+  const { lang, setLang, t } = useLanguage()
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-  const t = translations[lang]
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -37,8 +36,8 @@ export default function ProviderAuthPage() {
         router.push("/provider/dashboard")
       } else {
         toast({
-          title: "Error",
-          description: "Invalid email or password",
+          title: t.error,
+          description: t.invalidCredentials,
           variant: "destructive",
         })
       }
@@ -66,8 +65,8 @@ export default function ProviderAuthPage() {
     setTimeout(() => {
       sessionStorage.setItem("user", JSON.stringify(newUser))
       toast({
-        title: "Success",
-        description: "Account created successfully!",
+        title: t.success,
+        description: t.accountCreated,
       })
       router.push("/provider/dashboard")
       setIsLoading(false)
@@ -76,7 +75,7 @@ export default function ProviderAuthPage() {
 
   return (
     <div
-      className={`min-h-screen bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5 ${lang === "ar" ? "rtl" : ""}`}
+      className="min-h-screen bg-gradient-to-br from-primary/5 via-accent/5 to-secondary/5"
       dir={lang === "ar" ? "rtl" : "ltr"}
     >
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -85,10 +84,10 @@ export default function ProviderAuthPage() {
           <Link href="/">
             <Button variant="ghost" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
-              Back
+              {t.back}
             </Button>
           </Link>
-          <LanguageSelector currentLang={lang} onLangChange={setLang} />
+          <LanguageSelector />
         </div>
 
         <div className="flex flex-col items-center justify-center">
@@ -106,7 +105,7 @@ export default function ProviderAuthPage() {
                   <TabsTrigger value="register">{t.register}</TabsTrigger>
                 </TabsList>
                 <CardTitle className="text-2xl">{t.providerLogin}</CardTitle>
-                <CardDescription>Access your provider account</CardDescription>
+                <CardDescription>{t.accessProviderAccount}</CardDescription>
               </CardHeader>
 
               <TabsContent value="login">
@@ -123,7 +122,7 @@ export default function ProviderAuthPage() {
                   </CardContent>
                   <CardFooter>
                     <Button type="submit" className="w-full bg-secondary hover:bg-secondary/90" disabled={isLoading}>
-                      {isLoading ? "Loading..." : t.login}
+                      {isLoading ? t.loading : t.login}
                     </Button>
                   </CardFooter>
                 </form>
@@ -167,7 +166,7 @@ export default function ProviderAuthPage() {
                   </CardContent>
                   <CardFooter>
                     <Button type="submit" className="w-full bg-secondary hover:bg-secondary/90" disabled={isLoading}>
-                      {isLoading ? "Loading..." : t.register}
+                      {isLoading ? t.loading : t.register}
                     </Button>
                   </CardFooter>
                 </form>
@@ -175,7 +174,7 @@ export default function ProviderAuthPage() {
             </Tabs>
           </Card>
 
-          <p className="mt-4 text-sm text-muted-foreground">Demo credentials: doctor@sehamaroc.com / password</p>
+          <p className="mt-4 text-sm text-muted-foreground">{t.demoCredentialsProvider}</p>
         </div>
       </div>
     </div>

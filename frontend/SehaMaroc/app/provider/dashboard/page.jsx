@@ -4,15 +4,14 @@ import { useRouter } from "next/navigation"
 import { ProviderSidebar } from "@/components/provider-sidebar"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { translations } from "@/lib/translations"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { mockRequests, mockUsers } from "@/lib/mock-data"
 import { Users, FileText, CheckCircle, Award, AlertCircle } from "lucide-react"
 
 export default function ProviderDashboard() {
-  const [lang, setLang] = useState("en")
+  const { lang, setLang, t } = useLanguage()
   const [user, setUser] = useState(null)
   const router = useRouter()
-  const t = translations[lang]
 
   useEffect(() => {
     const userData = sessionStorage.getItem("user")
@@ -54,24 +53,25 @@ export default function ProviderDashboard() {
   }
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    const locale = lang === "fr" ? "fr-FR" : lang === "ar" ? "ar-MA" : "en-US"
+    return new Date(dateString).toLocaleDateString(locale, {
       month: "short",
       day: "numeric",
     })
   }
 
   return (
-    <div className={`flex min-h-screen ${lang === "ar" ? "rtl" : ""}`} dir={lang === "ar" ? "rtl" : "ltr"}>
-      <ProviderSidebar user={user} lang={lang} onLangChange={setLang} />
+    <div className="flex min-h-screen" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <ProviderSidebar user={user} />
 
       <main className="flex-1 p-6 lg:p-8 overflow-auto">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
           <div>
             <h1 className="text-3xl font-bold text-balance">
-              Welcome back, Dr. {user.profile?.lastName || "Provider"}
+              {t.welcomeBack}, {t.dr} {user.profile?.lastName || t.provider}
             </h1>
-            <p className="text-muted-foreground">Manage your patients and medical requests</p>
+            <p className="text-muted-foreground">{t.managePatients}</p>
           </div>
 
           {/* Stats Cards */}
@@ -83,7 +83,7 @@ export default function ProviderDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{assignedPatients.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">of {allPatients.length} total patients</p>
+                <p className="text-xs text-muted-foreground mt-1">{t.ofTotalPatients.replace("{total}", allPatients.length)}</p>
               </CardContent>
             </Card>
 
@@ -94,7 +94,7 @@ export default function ProviderDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{pendingRequests.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">awaiting response</p>
+                <p className="text-xs text-muted-foreground mt-1">{t.awaitingResponse}</p>
               </CardContent>
             </Card>
 
@@ -105,7 +105,7 @@ export default function ProviderDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{processedRequests.length}</div>
-                <p className="text-xs text-muted-foreground mt-1">completed this month</p>
+                <p className="text-xs text-muted-foreground mt-1">{t.completedThisMonth}</p>
               </CardContent>
             </Card>
 
@@ -116,7 +116,7 @@ export default function ProviderDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">1</div>
-                <p className="text-xs text-muted-foreground mt-1">certificates issued</p>
+                <p className="text-xs text-muted-foreground mt-1">{t.certificatesIssued}</p>
               </CardContent>
             </Card>
           </div>
@@ -126,14 +126,14 @@ export default function ProviderDashboard() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-orange-600" />
-                <CardTitle>Urgent Requests</CardTitle>
+                <CardTitle>{t.urgentRequests}</CardTitle>
               </div>
-              <CardDescription>High priority requests that need immediate attention</CardDescription>
+              <CardDescription>{t.highPriorityRequests}</CardDescription>
             </CardHeader>
             <CardContent>
               {urgentRequests.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">No urgent requests at the moment</p>
+                  <p className="text-muted-foreground">{t.noUrgentRequests}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -161,8 +161,8 @@ export default function ProviderDashboard() {
           {/* New Patients */}
           <Card>
             <CardHeader>
-              <CardTitle>New Patients</CardTitle>
-              <CardDescription>Recently registered patients</CardDescription>
+              <CardTitle>{t.newPatients}</CardTitle>
+              <CardDescription>{t.recentlyRegistered}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">

@@ -18,19 +18,18 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
-import { translations } from "@/lib/translations"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { mockRequests } from "@/lib/mock-data"
 import { Plus, Filter, FileText } from "lucide-react"
 
 export default function PatientRequests() {
-  const [lang, setLang] = useState("en")
+  const { lang, setLang, t } = useLanguage()
   const [user, setUser] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [filter, setFilter] = useState("all")
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-  const t = translations[lang]
 
   useEffect(() => {
     const userData = sessionStorage.getItem("user")
@@ -52,8 +51,8 @@ export default function PatientRequests() {
 
     setTimeout(() => {
       toast({
-        title: "Success",
-        description: "Your request has been submitted successfully!",
+        title: t.success,
+        description: t.requestSubmitted,
       })
       setIsModalOpen(false)
       setIsLoading(false)
@@ -89,7 +88,8 @@ export default function PatientRequests() {
   }
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    const locale = lang === "fr" ? "fr-FR" : lang === "ar" ? "ar-MA" : "en-US"
+    return new Date(dateString).toLocaleDateString(locale, {
       month: "short",
       day: "numeric",
       year: "numeric",
@@ -102,8 +102,8 @@ export default function PatientRequests() {
   const filteredRequests = filter === "all" ? userRequests : userRequests.filter((req) => req.status === filter)
 
   return (
-    <div className={`flex min-h-screen ${lang === "ar" ? "rtl" : ""}`} dir={lang === "ar" ? "rtl" : "ltr"}>
-      <PatientSidebar user={user} lang={lang} onLangChange={setLang} />
+    <div className="flex min-h-screen" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <PatientSidebar user={user} />
 
       <main className="flex-1 p-6 lg:p-8 overflow-auto">
         <div className="max-w-7xl mx-auto space-y-6">
@@ -111,7 +111,7 @@ export default function PatientRequests() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-balance">{t.myRequests}</h1>
-              <p className="text-muted-foreground">Manage your medical requests</p>
+              <p className="text-muted-foreground">{t.manageMedicalRequests}</p>
             </div>
             <Button
               onClick={() => setIsModalOpen(true)}
@@ -127,34 +127,34 @@ export default function PatientRequests() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Filter className="h-5 w-5" />
-                <CardTitle className="text-lg">Filters</CardTitle>
+                <CardTitle className="text-lg">{t.filters}</CardTitle>
               </div>
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
                 <Button variant={filter === "all" ? "default" : "outline"} onClick={() => setFilter("all")} size="sm">
-                  All
+                  {t.all}
                 </Button>
                 <Button
                   variant={filter === "pending" ? "default" : "outline"}
                   onClick={() => setFilter("pending")}
                   size="sm"
                 >
-                  Pending
+                  {t.pending}
                 </Button>
                 <Button
                   variant={filter === "in_progress" ? "default" : "outline"}
                   onClick={() => setFilter("in_progress")}
                   size="sm"
                 >
-                  In Progress
+                  {t.inProgress}
                 </Button>
                 <Button
                   variant={filter === "completed" ? "default" : "outline"}
                   onClick={() => setFilter("completed")}
                   size="sm"
                 >
-                  Completed
+                  {t.completed}
                 </Button>
               </div>
             </CardContent>
@@ -163,15 +163,15 @@ export default function PatientRequests() {
           {/* Requests Table */}
           <Card>
             <CardHeader>
-              <CardTitle>Your Requests ({filteredRequests.length})</CardTitle>
-              <CardDescription>Track the status of all your medical requests</CardDescription>
+              <CardTitle>{t.yourRequests} ({filteredRequests.length})</CardTitle>
+              <CardDescription>{t.trackRequestsStatus}</CardDescription>
             </CardHeader>
             <CardContent>
               {filteredRequests.length === 0 ? (
                 <div className="text-center py-12">
                   <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No requests found</p>
-                  <p className="text-sm text-muted-foreground mt-1">Create a new request to get started</p>
+                  <p className="text-muted-foreground">{t.noRequestsFound}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{t.createNewRequest}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -180,11 +180,11 @@ export default function PatientRequests() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-3 px-4 font-medium">Type</th>
-                          <th className="text-left py-3 px-4 font-medium">Subject</th>
-                          <th className="text-left py-3 px-4 font-medium">Status</th>
-                          <th className="text-left py-3 px-4 font-medium">Priority</th>
-                          <th className="text-left py-3 px-4 font-medium">Date</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.type}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.subject}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.status}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.priority}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.date}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -249,71 +249,71 @@ export default function PatientRequests() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-2xl">{t.newRequest}</DialogTitle>
-            <DialogDescription>Fill out the form to submit a new medical request</DialogDescription>
+            <DialogDescription>{t.fillFormToSubmit}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmitRequest}>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="type">Request Type</Label>
+                <Label htmlFor="type">{t.requestType}</Label>
                 <Select name="type" defaultValue="consultation" required>
                   <SelectTrigger id="type">
-                    <SelectValue placeholder="Select type" />
+                    <SelectValue placeholder={t.selectType} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="consultation">Consultation</SelectItem>
-                    <SelectItem value="follow-up">Follow-up</SelectItem>
-                    <SelectItem value="prescription">Prescription</SelectItem>
-                    <SelectItem value="certificate">Medical Certificate</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="consultation">{t.consultation}</SelectItem>
+                    <SelectItem value="follow-up">{t.followUp}</SelectItem>
+                    <SelectItem value="prescription">{t.prescription}</SelectItem>
+                    <SelectItem value="certificate">{t.medicalCertificate}</SelectItem>
+                    <SelectItem value="other">{t.other}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="priority">Priority</Label>
+                <Label htmlFor="priority">{t.priority}</Label>
                 <Select name="priority" defaultValue="medium" required>
                   <SelectTrigger id="priority">
-                    <SelectValue placeholder="Select priority" />
+                    <SelectValue placeholder={t.selectPriority} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value="low">{t.low}</SelectItem>
+                    <SelectItem value="medium">{t.medium}</SelectItem>
+                    <SelectItem value="high">{t.high}</SelectItem>
+                    <SelectItem value="urgent">{t.urgent}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="subject">Subject</Label>
-                <Input id="subject" name="subject" placeholder="Brief description of your request" required />
+                <Label htmlFor="subject">{t.subject}</Label>
+                <Input id="subject" name="subject" placeholder={t.briefDescription} required />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">{t.description}</Label>
                 <Textarea
                   id="description"
                   name="description"
-                  placeholder="Provide detailed information about your request"
+                  placeholder={t.detailedInformation}
                   rows={4}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="preferredDate">Preferred Date</Label>
+                <Label htmlFor="preferredDate">{t.preferredDate}</Label>
                 <Input id="preferredDate" name="preferredDate" type="date" required />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="doctor">Doctor (Optional)</Label>
+                <Label htmlFor="doctor">{t.doctorOptional}</Label>
                 <Select name="doctor">
                   <SelectTrigger id="doctor">
-                    <SelectValue placeholder="Select a doctor" />
+                    <SelectValue placeholder={t.selectDoctor} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="3">Dr. Fatima Alami - Cardiology</SelectItem>
-                    <SelectItem value="any">Any Available Doctor</SelectItem>
+                    <SelectItem value="any">{t.anyAvailableDoctor}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -323,7 +323,7 @@ export default function PatientRequests() {
                 {t.cancel}
               </Button>
               <Button type="submit" className="bg-primary hover:bg-primary/90" disabled={isLoading}>
-                {isLoading ? "Submitting..." : t.send}
+                {isLoading ? t.submitting : t.send}
               </Button>
             </DialogFooter>
           </form>

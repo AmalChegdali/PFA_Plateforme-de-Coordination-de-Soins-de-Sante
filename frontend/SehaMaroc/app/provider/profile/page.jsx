@@ -7,15 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
-import { translations } from "@/lib/translations"
+import { useLanguage } from "@/contexts/LanguageContext"
 
 export default function ProviderProfile() {
-  const [lang, setLang] = useState("en")
+  const { lang, setLang, t } = useLanguage()
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-  const t = translations[lang]
 
   useEffect(() => {
     const userData = sessionStorage.getItem("user")
@@ -51,8 +50,8 @@ export default function ProviderProfile() {
       sessionStorage.setItem("user", JSON.stringify(updatedUser))
       setUser(updatedUser)
       toast({
-        title: "Success",
-        description: "Profile updated successfully!",
+        title: t.success,
+        description: t.profileUpdated,
       })
       setIsLoading(false)
     }, 800)
@@ -61,23 +60,23 @@ export default function ProviderProfile() {
   if (!user) return null
 
   return (
-    <div className={`flex min-h-screen ${lang === "ar" ? "rtl" : ""}`} dir={lang === "ar" ? "rtl" : "ltr"}>
-      <ProviderSidebar user={user} lang={lang} onLangChange={setLang} />
+    <div className="flex min-h-screen" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <ProviderSidebar user={user} />
 
       <main className="flex-1 p-6 lg:p-8 overflow-auto">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header */}
           <div>
             <h1 className="text-3xl font-bold text-balance">{t.myProfile}</h1>
-            <p className="text-muted-foreground">Manage your professional information</p>
+            <p className="text-muted-foreground">{t.manageProfessionalInfo}</p>
           </div>
 
           {/* Profile Form */}
           <form onSubmit={handleSubmit}>
             <Card>
               <CardHeader>
-                <CardTitle>Professional Information</CardTitle>
-                <CardDescription>Update your professional details</CardDescription>
+                <CardTitle>{t.professionalInformation}</CardTitle>
+                <CardDescription>{t.updateProfessionalDetails}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-4">
@@ -115,7 +114,7 @@ export default function ProviderProfile() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="address">{t.address}</Label>
                   <Input
                     id="address"
                     name="address"
@@ -126,21 +125,21 @@ export default function ProviderProfile() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
+                  <Label htmlFor="city">{t.city}</Label>
                   <Input id="city" name="city" placeholder="Casablanca" defaultValue={user.profile.city} required />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>License Number</Label>
+                  <Label>{t.licenseNumber}</Label>
                   <Input value={user.profile.licenseNumber} disabled className="bg-muted" />
-                  <p className="text-xs text-muted-foreground">License number cannot be changed</p>
+                  <p className="text-xs text-muted-foreground">{t.licenseNumberCannotChange}</p>
                 </div>
               </CardContent>
             </Card>
 
             <div className="flex justify-end gap-4 mt-6">
               <Button type="submit" size="lg" className="bg-secondary hover:bg-secondary/90" disabled={isLoading}>
-                {isLoading ? "Saving..." : t.save}
+                {isLoading ? t.saving : t.save}
               </Button>
             </div>
           </form>

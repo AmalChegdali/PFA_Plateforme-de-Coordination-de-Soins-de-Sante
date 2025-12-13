@@ -7,17 +7,16 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
-import { translations } from "@/lib/translations"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { mockUsers, mockRequests } from "@/lib/mock-data"
 import { Users, UserMinus, UserPlus } from "lucide-react"
 
 export default function ProviderPatients() {
-  const [lang, setLang] = useState("en")
+  const { lang, setLang, t } = useLanguage()
   const [user, setUser] = useState(null)
   const [assignedPatientIds, setAssignedPatientIds] = useState([])
   const router = useRouter()
   const { toast } = useToast()
-  const t = translations[lang]
 
   useEffect(() => {
     const userData = sessionStorage.getItem("user")
@@ -43,16 +42,16 @@ export default function ProviderPatients() {
   const handleAssign = (patientId) => {
     setAssignedPatientIds([...assignedPatientIds, patientId])
     toast({
-      title: "Success",
-      description: "Patient assigned successfully!",
+      title: t.success,
+      description: t.patientAssignedSuccess,
     })
   }
 
   const handleUnassign = (patientId) => {
     setAssignedPatientIds(assignedPatientIds.filter((id) => id !== patientId))
     toast({
-      title: "Success",
-      description: "Patient unassigned successfully!",
+      title: t.success,
+      description: t.patientUnassignedSuccess,
     })
   }
 
@@ -67,10 +66,10 @@ export default function ProviderPatients() {
       <td className="py-4 px-4">
         {patient.profile.firstName && patient.profile.lastName
           ? `${patient.profile.firstName} ${patient.profile.lastName}`
-          : "Incomplete"}
+          : t.incomplete}
       </td>
       <td className="py-4 px-4">{patient.email}</td>
-      <td className="py-4 px-4">{patient.profile.phone || "-"}</td>
+      <td className="py-4 px-4">{patient.profile.phone || t.noPhone}</td>
       <td className="py-4 px-4">
         <Badge variant={patient.profile.status === "active" ? "active" : "pending"} className="text-xs">
           {patient.profile.status?.toUpperCase()}
@@ -80,7 +79,7 @@ export default function ProviderPatients() {
         {isAssigned ? (
           <Button variant="outline" size="sm" onClick={() => handleUnassign(patient.id)} className="gap-2">
             <UserMinus className="h-4 w-4" />
-            Unassign
+            {t.unassign}
           </Button>
         ) : (
           <Button
@@ -90,7 +89,7 @@ export default function ProviderPatients() {
             className="gap-2 bg-primary hover:bg-primary/90"
           >
             <UserPlus className="h-4 w-4" />
-            Assign
+            {t.assign}
           </Button>
         )}
       </td>
@@ -113,11 +112,11 @@ export default function ProviderPatients() {
             {patient.profile.status?.toUpperCase()}
           </Badge>
         </div>
-        <p className="text-sm text-muted-foreground">{patient.profile.phone || "No phone"}</p>
+        <p className="text-sm text-muted-foreground">{patient.profile.phone || t.noPhone}</p>
         {isAssigned ? (
           <Button variant="outline" size="sm" onClick={() => handleUnassign(patient.id)} className="w-full gap-2">
             <UserMinus className="h-4 w-4" />
-            Unassign
+            {t.unassign}
           </Button>
         ) : (
           <Button
@@ -127,7 +126,7 @@ export default function ProviderPatients() {
             className="w-full gap-2 bg-primary hover:bg-primary/90"
           >
             <UserPlus className="h-4 w-4" />
-            Assign
+            {t.assign}
           </Button>
         )}
       </CardContent>
@@ -135,30 +134,30 @@ export default function ProviderPatients() {
   )
 
   return (
-    <div className={`flex min-h-screen ${lang === "ar" ? "rtl" : ""}`} dir={lang === "ar" ? "rtl" : "ltr"}>
-      <ProviderSidebar user={user} lang={lang} onLangChange={setLang} />
+    <div className="flex min-h-screen" dir={lang === "ar" ? "rtl" : "ltr"}>
+      <ProviderSidebar user={user} />
 
       <main className="flex-1 p-6 lg:p-8 overflow-auto">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}
           <div>
             <h1 className="text-3xl font-bold text-balance">{t.myPatients}</h1>
-            <p className="text-muted-foreground">Manage your assigned patients</p>
+            <p className="text-muted-foreground">{t.manageAssignedPatients}</p>
           </div>
 
           {/* Tabs */}
           <Tabs defaultValue="all" className="space-y-6">
             <TabsList>
-              <TabsTrigger value="all">All ({allPatients.length})</TabsTrigger>
-              <TabsTrigger value="assigned">My Assigned ({assignedPatients.length})</TabsTrigger>
-              <TabsTrigger value="unassigned">Unassigned ({unassignedPatients.length})</TabsTrigger>
+              <TabsTrigger value="all">{t.all} ({allPatients.length})</TabsTrigger>
+              <TabsTrigger value="assigned">{t.myAssigned} ({assignedPatients.length})</TabsTrigger>
+              <TabsTrigger value="unassigned">{t.unassigned} ({unassignedPatients.length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="all">
               <Card>
                 <CardHeader>
-                  <CardTitle>All Patients</CardTitle>
-                  <CardDescription>Complete list of registered patients</CardDescription>
+                  <CardTitle>{t.allPatients}</CardTitle>
+                  <CardDescription>{t.completeListPatients}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {/* Desktop Table */}
@@ -166,11 +165,11 @@ export default function ProviderPatients() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-3 px-4 font-medium">Name</th>
-                          <th className="text-left py-3 px-4 font-medium">Email</th>
-                          <th className="text-left py-3 px-4 font-medium">Phone</th>
-                          <th className="text-left py-3 px-4 font-medium">Status</th>
-                          <th className="text-left py-3 px-4 font-medium">Actions</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.name}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.email}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.phone}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.status}</th>
+                          <th className="text-left py-3 px-4 font-medium">{t.actions}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -202,14 +201,14 @@ export default function ProviderPatients() {
             <TabsContent value="assigned">
               <Card>
                 <CardHeader>
-                  <CardTitle>My Assigned Patients</CardTitle>
-                  <CardDescription>Patients assigned to your care</CardDescription>
+                  <CardTitle>{t.myAssignedPatients}</CardTitle>
+                  <CardDescription>{t.patientsAssignedToCare}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {assignedPatients.length === 0 ? (
                     <div className="text-center py-12">
                       <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">No assigned patients yet</p>
+                      <p className="text-muted-foreground">{t.noAssignedPatientsYet}</p>
                     </div>
                   ) : (
                     <>
@@ -248,14 +247,14 @@ export default function ProviderPatients() {
             <TabsContent value="unassigned">
               <Card>
                 <CardHeader>
-                  <CardTitle>Unassigned Patients</CardTitle>
-                  <CardDescription>Patients available for assignment</CardDescription>
+                  <CardTitle>{t.unassignedPatients}</CardTitle>
+                  <CardDescription>{t.patientsAvailableForAssignment}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {unassignedPatients.length === 0 ? (
                     <div className="text-center py-12">
                       <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">All patients are assigned</p>
+                      <p className="text-muted-foreground">{t.allPatientsAssigned}</p>
                     </div>
                   ) : (
                     <>

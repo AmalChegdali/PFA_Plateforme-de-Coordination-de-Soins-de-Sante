@@ -1,25 +1,23 @@
 "use client"
-import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LanguageSelector } from "@/components/language-selector"
 import { Logo } from "@/components/logo"
-import { translations } from "@/lib/translations"
+import { useLanguage } from "@/contexts/LanguageContext"
 import { Heart, Shield, UserCheck, ArrowRight } from "lucide-react"
 
 export default function LandingPage() {
-  const [lang, setLang] = useState("en")
-  const t = translations[lang]
+  const { lang, setLang, t } = useLanguage()
 
   return (
-    <div className={`min-h-screen ${lang === "ar" ? "rtl" : ""}`} dir={lang === "ar" ? "rtl" : "ltr"}>
+    <div className="min-h-screen" dir={lang === "ar" ? "rtl" : "ltr"}>
       {/* Header */}
       <header className="border-b bg-card sticky top-0 z-50 backdrop-blur-sm bg-card/80">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Logo size="md" />
-            <LanguageSelector currentLang={lang} onLangChange={setLang} />
+            <LanguageSelector />
           </div>
         </div>
       </header>
@@ -104,7 +102,7 @@ export default function LandingPage() {
           <div className="flex flex-col items-center gap-4">
             <Logo size="md" href="/" />
             <p className="text-sm text-muted-foreground">
-              © 2025 SehaMaroc. {lang === "ar" ? "جميع الحقوق محفوظة" : "All rights reserved"}
+              {t.copyright}
             </p>
           </div>
         </div>
