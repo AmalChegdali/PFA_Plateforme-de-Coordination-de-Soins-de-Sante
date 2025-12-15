@@ -1,0 +1,88 @@
+pipeline {
+    agent any
+    environment {
+        DOCKER_REGISTRY = "sante-maroc"
+    }
+    stages {
+        stage('Checkout SCM') {
+            steps {
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    userRemoteConfigs: [[
+                        url: 'https://github.com/Amal23-Hub/PFA_Plateforme-de-Coordination-de-Soins-de-Sant-.git',
+                        credentialsId: 'ID12345'
+                    ]]
+                ])
+            }
+        }
+
+        stage('Build Backend Microservices') {
+            steps {
+                script {
+                    // Récupérer tous les dossiers contenant un pom.xml
+                    def microservices = sh(
+                        script: "find backend -name pom.xml -exec dirname {} \\;",
+                        returnStdout: true
+                    ).trim().split("\n")
+
+                    for (ms in microservices) {
+                        echo "=== Build du microservice : ${ms} ==="
+                        dir(ms) {
+                            // Build Maven dans Docker
+                            docker.image('maven:3.9.2-eclipse-temurin-17').inside {
+                                sh 'mvn clean package -DskipTests'
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                script {
+                    def microservices = sh(
+                        script: "find backend -name pom.xml -exec dirname {} \\;",
+                        returnStdout: true
+                    ).trim().split("\n")
+
+                    for (ms in microservices) {
+                        def serviceName = ms.tokenize('/').last()
+                        echo "=== Build Docker image : ${serviceName} ==="
+                        sh "docker build -t ${DOCKER_REGISTRY}/${serviceName}:latest ${ms}"
+                    }
+                }
+            }
+        }
+
+        stage('Run Docker Containers') {
+            steps {
+                script {
+                    def microservices = sh(
+                        script: "find backend -name pom.xml -exec dirname {} \\;",
+                        returnStdout: true
+                    ).trim().split("\n")
+
+                    for (ms in microservices) {
+                        def serviceName = ms.tokenize('/').last()
+                        echo "=== Run Docker container : ${serviceName} ==="
+                        sh """
+                            docker stop ${serviceName} || true
+                            docker rm ${serviceName} || true
+                            docker run -d --name ${serviceName} -p 8${serviceName.hashCode() % 1000}:8080 ${DOCKER_REGISTRY}/${serviceName}:latest
+                        """
+                    }
+                }
+            }
+        }
+    }
+    post {
+        success {
+            echo "Pipeline terminé avec succès !"
+        }
+        failure {
+            echo "Erreur lors du pipeline, vérifier les logs."
+        }
+    }
+}

@@ -1,4 +1,5 @@
 # ==============================
+<<<<<<< HEAD
 # Dossiers de build
 # ==============================
 **/target/
@@ -10,11 +11,15 @@
 
 # ==============================
 # Fichiers compilés
+=======
+# Fichiers compilés et build
+>>>>>>> db48838526432f1a2e774fba287069319fda7fcc
 # ==============================
 *.class
 *.jar
 *.war
 *.ear
+<<<<<<< HEAD
 *.log
 
 # ==============================
@@ -24,11 +29,67 @@
 Thumbs.db
 *.swp
 *.tmp
+=======
+
+# Dossiers de build
+/target/
+/build/
+/out/
+
+# Fichiers temporaires
+*.log
+*.tmp
+*.swp
+
+# ==============================
+# Maven
+# ==============================
+/.mvn/
+!/mvnw
+!.mvn/wrapper/maven-wrapper.jar
+/dependency-reduced-pom.xml
+
+# ==============================
+# Gradle
+# ==============================
+/.gradle/
+/build/
+>>>>>>> db48838526432f1a2e774fba287069319fda7fcc
 
 # ==============================
 # Fichiers de configuration sensibles
 # ==============================
+<<<<<<< HEAD
 *.env
 .env.local
 .env.*.local
+=======
+application.properties
+application.yml
+*.env
+
+# ==============================
+# IDE et éditeurs
+# ==============================
+# IntelliJ IDEA
+/.idea/
+/*.iml
+
+# Eclipse
+/.classpath
+/.project
+/.settings/
+
+# VS Code
+/.vscode/
+
+# ==============================
+# OS et fichiers système
+# ==============================
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+>>>>>>> db48838526432f1a2e774fba287069319fda7fcc
 
