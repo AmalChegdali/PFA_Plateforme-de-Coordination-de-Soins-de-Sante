@@ -1,0 +1,46 @@
+name: Java Microservices CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [service1, service2, service3] # Liste de tes microservices
+
+    steps:
+      - name: 📥 Checkout du code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 📦 Build du microservice
+        working-directory: ${{ matrix.service }}
+        run: |
+          echo "🚀 Build de ${{ matrix.service }}"
+          mvn clean install -DskipTests=true
+          echo "✅ Build terminé pour ${{ matrix.service }}"
+
+      - name: 🧪 Exécution des tests
+        working-directory: ${{ matrix.service }}
+        run: |
+          echo "🧪 Lancement des tests pour ${{ matrix.service }}"
+          mvn test
+          echo "✔️ Tests terminés pour ${{ matrix.service }}"
+
+      # Optionnel : construire des images Docker pour chaque service
+      - name: 🐳 Build Docker image
+        if: success()
+        working-directory: ${{ matrix.service }}
+        run: |
+          echo "🐳 Construction de l'image Docker pour ${{ matrix.service }}"
+          docker build -t myorg/${{ matrix.service }}:latest .

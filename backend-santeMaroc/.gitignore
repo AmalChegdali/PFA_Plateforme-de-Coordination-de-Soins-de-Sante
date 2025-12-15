@@ -1,0 +1,64 @@
+# ==============================
+# Fichiers compilés et build
+# ==============================
+*.class
+*.jar
+*.war
+*.ear
+
+# Dossiers de build
+/target/
+/build/
+/out/
+
+# Fichiers temporaires
+*.log
+*.tmp
+*.swp
+
+# ==============================
+# Maven
+# ==============================
+/.mvn/
+!/mvnw
+!.mvn/wrapper/maven-wrapper.jar
+/dependency-reduced-pom.xml
+
+# ==============================
+# Gradle
+# ==============================
+/.gradle/
+/build/
+
+# ==============================
+# Fichiers de configuration sensibles
+# ==============================
+)
+*.env
+.env.local
+.env.*.local
+
+# ==============================
+# IDE et éditeurs
+# ==============================
+# IntelliJ IDEA
+/.idea/
+/*.iml
+
+# Eclipse
+/.classpath
+/.project
+/.settings/
+
+# VS Code
+/.vscode/
+
+# ==============================
+# OS et fichiers système
+# ==============================
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+

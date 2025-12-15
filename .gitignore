@@ -1,0 +1,34 @@
+# ==============================
+# Dossiers de build
+# ==============================
+**/target/
+**/build/
+**/out/
+**/node_modules/
+**/.idea/
+**/.vscode/
+
+# ==============================
+# Fichiers compilés
+# ==============================
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# ==============================
+# Fichiers système
+# ==============================
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
+
+# ==============================
+# Fichiers de configuration sensibles
+# ==============================
+*.env
+.env.local
+.env.*.local
+
