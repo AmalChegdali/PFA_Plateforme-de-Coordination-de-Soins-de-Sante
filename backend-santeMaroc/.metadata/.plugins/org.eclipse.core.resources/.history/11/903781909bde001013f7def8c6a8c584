@@ -1,0 +1,105 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  main:
+    allow-bean-definition-overriding: true
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
+  cloud:
+    config:
+      enabled: false
+      fail-fast: false
+    gateway:
+      default-filters:
+        - DeduplicateResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - http://localhost:3000
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+      routes:
+        # ==================== PATIENT-SERVICE ====================
+        # Routes pour les patients : profil, historique médical, notifications
+        - id: patient-service
+          uri: lb://patient-service
+          predicates:
+            - Path=/api/patient/**,/api/notifications/**
+          filters:
+            - StripPrefix=0
+
+        # ==================== PATIENT AUTHENTICATION ====================
+        # Authentification des patients (register, login)
+        - id: patient-auth-service
+          uri: lb://patient-service
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=0
+
+        # ==================== PROVIDER-SERVICE ====================
+        # Routes pour les providers : gestion des patients, dossiers médicaux
+        - id: provider-service
+          uri: lb://provider-service
+          predicates:
+            - Path=/api/providers/**,/api/provider/**
+          filters:
+            - StripPrefix=0
+
+        # ==================== PROVIDER AUTHENTICATION ====================
+        # Authentification des providers (register, login, profile, providers/list)
+        # Note: Les endpoints /api/auth/** sont gérés par les deux services
+        # La distinction se fait au niveau du body de la requête (email/password)
+        - id: provider-auth-service
+          uri: lb://provider-service
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=0
+
+        # ==================== MEDICAL-RECORD-SERVICE ====================
+        # Gestion des dossiers médicaux (lecture, mise à jour, suppression)
+        - id: medical-record-service
+          uri: lb://medicalrecord-service
+          predicates:
+            - Path=/api/records/**
+          filters:
+            - StripPrefix=0
+
+        # ==================== REQUEST-SERVICE ====================
+        # Gestion des demandes de patients et certificats médicaux
+        # Note: La création de demandes se fait via Patient-Service qui publie ensuite sur RabbitMQ
+        - id: request-service
+          uri: lb://request-service
+          predicates:
+            - Path=/api/requests/**,/api/certificates/**
+          filters:
+            - StripPrefix=0
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: false
+    fetch-registry: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO
+    org.springframework.cloud.gateway.filter: DEBUG
