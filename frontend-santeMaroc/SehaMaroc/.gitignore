@@ -1,0 +1,75 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Testing
+/coverage
+/.nyc_output
+
+# Next.js
+/.next/
+/out/
+.next
+dist/
+
+# Production
+/build
+
+# Miscellaneous
+*.pem
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.production.local
+.env.development.local
+
+# IDE / Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.eslintcache
+.prettierignore
+
+# OS Files (Windows)
+desktop.ini
+.lnk
+
+# macOS
+.AppleDouble
+.LSOverride
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# IDE specific
+.vscode/settings.json
+.vscode/extensions.json
+*.code-workspace
+
+# Misc
+.cache/
+.turbo/
+turbo.json.local
