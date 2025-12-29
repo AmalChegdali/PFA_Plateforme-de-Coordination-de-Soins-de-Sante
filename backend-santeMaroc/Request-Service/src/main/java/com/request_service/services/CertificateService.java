@@ -24,6 +24,7 @@ import java.util.UUID;
 public class CertificateService {
 
     private final CertificateRepository certificateRepository;
+    
 
     /**
      * Récupère un certificat par son ID.

@@ -2,6 +2,7 @@ package com.request_service.controllers;
 
 import com.request_service.dto.CreateCertificateRequest;
 import com.request_service.models.Certificate;
+import com.request_service.repository.CertificateRepository;
 import com.request_service.services.CertificatePdfService;
 import com.request_service.services.CertificateService;
 import com.request_service.services.DataEnrichmentService;
@@ -16,6 +17,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -27,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -45,6 +49,19 @@ public class CertificateController {
     private final CertificateService certificateService;
     private final CertificatePdfService certificatePdfService;
     private final DataEnrichmentService dataEnrichmentService;
+    
+    @Autowired
+    CertificateRepository certificateRepository;
+    
+    @GetMapping("/all")
+    public List<Certificate> getAllCertificates() {
+    	return certificateRepository.findAll();
+    }
+    
+    @GetMapping("/{id}/patient")
+    public List<Certificate> getPatientCertificates(@PathVariable String id) {
+    	return certificateService.getCertificatesByPatientId(id);
+    }
 
     /**
      * Génère un PDF pour un certificat médical.
